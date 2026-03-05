@@ -28,12 +28,11 @@ import com.yatlunah.app.R
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     onNavigateToRegister: () -> Unit,
-    onLoginSuccess: (String, String, String) -> Unit
+    // ✅ PERBAIKAN 1: Tambahkan satu String lagi untuk 'role'
+    onLoginSuccess: (String, String, String, String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    // ✅ TAMBAHKAN STATE INI
     var passwordVisible by remember { mutableStateOf(false) }
 
     val brightGreen = Color(0xFF00D639)
@@ -86,21 +85,16 @@ fun LoginScreen(
                             singleLine = true
                         )
 
-                        // ✅ PERUBAHAN: TextField Password dengan Ikon Mata
                         TextField(
                             value = password, onValueChange = { password = it },
                             placeholder = { Text("Password", color = Color.Gray) },
                             leadingIcon = { Icon(Icons.Default.Lock, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
-                            // Logika transformasi teks
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            // Menambahkan Ikon Mata di ujung kanan
                             trailingIcon = {
                                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                                val description = if (passwordVisible) "Sembunyikan password" else "Tampilkan password"
-
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(imageVector = image, contentDescription = description, tint = Color.Gray)
+                                    Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
                                 }
                             },
                             colors = TextFieldDefaults.colors(
@@ -126,9 +120,9 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             if (email.isNotEmpty() && password.isNotEmpty()) {
-                                viewModel.login(email, password)
-                                { id, nama, emailResult ->
-                                    onLoginSuccess(id, nama, emailResult)
+                                // ✅ PERBAIKAN 2: Sesuaikan pemanggilan ViewModel agar menyertakan 'role'
+                                viewModel.login(email, password) { id, nama, emailRes, role ->
+                                    onLoginSuccess(id, nama, emailRes, role)
                                 }
                             }
                         },

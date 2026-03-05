@@ -17,7 +17,7 @@ class RegisterViewModel : ViewModel() {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = repository.registerUser(RegisterRequest(nama, email, pass))
+                val response = repository.register(RegisterRequest(nama, email, pass))
                 if (response.isSuccessful) {
                     // ✅ PERBAIKAN: Ganti user_id menjadi userId
                     val idBaru = response.body()?.userId

@@ -14,27 +14,28 @@ class LoginViewModel : ViewModel() {
     var loginStatus by mutableStateOf("")
     var isLoading by mutableStateOf(false)
 
-    // ✅ SESUAIKAN: Parameter onSuccess sekarang menerima TIGA String (ID, Nama, dan Email)
-    fun login(email: String, pass: String, onSuccess: (String, String, String) -> Unit) {
+    // ✅ SESUAIKAN: Parameter onSuccess sekarang menerima EMPAT String (tambah 'role')
+    fun login(email: String, pass: String, onSuccess: (String, String, String, String) -> Unit) {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = repository.loginUser(LoginRequest(email, pass))
+                val response = repository.login(LoginRequest(email, pass))
 
                 Log.d("YATLUNAH_DEBUG", "Response: ${response.body()}")
 
                 if (response.isSuccessful) {
                     val body = response.body()
 
-                    // ✅ Ambil data lengkap dari backend FastAPI kamu
-                    val userId = body?.userId ?: "" // Ambil UUID asli
+                    // ✅ Ambil data lengkap termasuk role dari backend FastAPI
+                    val userId = body?.userId ?: ""
                     val name = body?.nama_lengkap ?: "User Yatlunah"
-                    val userEmail = body?.email ?: email // Gunakan email dari input jika body null
+                    val userEmail = body?.email ?: email
+                    val userRole = body?.role ?: "peserta" // ✅ Ambil role dari body response
 
                     loginStatus = "Selamat datang, $name!"
 
-                    // ✅ KIRIM KETIGA DATA ke LoginScreen -> MainActivity
-                    onSuccess(userId, name, userEmail)
+                    // ✅ KIRIM KEEMPAT DATA ke LoginScreen -> MainActivity
+                    onSuccess(userId, name, userEmail, userRole)
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "Kesalahan tidak diketahui"
                     loginStatus = "Gagal: Email atau Password salah"

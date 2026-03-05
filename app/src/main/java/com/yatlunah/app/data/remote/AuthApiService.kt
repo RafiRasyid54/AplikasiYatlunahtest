@@ -5,38 +5,36 @@ import com.yatlunah.app.data.remote.dto.UpdateNameRequest
 import com.yatlunah.app.data.remote.dto.UpdatePasswordRequest
 import okhttp3.ResponseBody
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
-import retrofit2.http.Query
+import retrofit2.http.*
 
 interface AuthApiService {
 
-    // Di AuthApiService.kt
+    // --- 1. Statistik & Info User ---
     @GET("users/{id}/stats")
     suspend fun getUserStats(@Path("id") userId: String): Response<UserStats>
+
+    // --- 2. Autentikasi (Login & Register) ---
     @POST("register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     @POST("login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
-    // ✅ ENDPOINT BARU: Update Nama
-    // Pastikan "users/{id}/name" sesuai dengan rute di FastAPI kamu (@app.put("/users/{id}/name"))
+    // --- 3. Update Profile (Nama) ---
+    // Pilih satu endpoint yang paling sesuai dengan backend FastAPI kamu
     @PUT("users/{id}/name")
     suspend fun updateName(
         @Path("id") userId: String,
-        @Body request: UpdateNameRequest
-    ): Response<AuthResponse> // Menggunakan AuthResponse atau sesuaikan dengan kembalian FastAPI
+        @Body request: UserNameUpdate // 👈 Harus pakai ini
+    ): Response<AuthResponse>
 
     @PUT("users/{id}/password")
     suspend fun updatePassword(
         @Path("id") userId: String,
-        @Body request: UpdatePasswordRequest
-    ): Response<AuthResponse> // Menggunakan AuthResponse atau sesuaikan dengan kembalian FastAPI
+        @Body request: UserPasswordUpdate // 👈 Harus pakai ini
+    ): Response<AuthResponse>
 
+    // --- 5. Progres Belajar ---
     @POST("users/{user_id}/update_progress")
     suspend fun updateProgress(
         @Path("user_id") userId: String,
@@ -44,17 +42,10 @@ interface AuthApiService {
         @Query("halaman") halaman: Int
     ): Response<ResponseBody>
 
-    // Update Profile
-    @PUT("users/{id}/update-profile")
-    suspend fun updateProfileName(
-        @Path("id") userId: String,
-        @Body request: UserNameUpdate
-    ): Response<okhttp3.ResponseBody>
-
-    @PUT("users/{id}/update-password")
-    suspend fun updatePassword(
-        @Path("id") userId: String,
-        @Body request: UserPasswordUpdate
-    ): Response<okhttp3.ResponseBody>
+    // mengambil data user untuk admin
+    @GET("admin/users/{role}")
+    suspend fun getUsersByRole(
+        @Path("role") role: String
+    ): Response<List<UserResponse>> // Pastikan UserResponse sudah ada di folder model
 
 }
