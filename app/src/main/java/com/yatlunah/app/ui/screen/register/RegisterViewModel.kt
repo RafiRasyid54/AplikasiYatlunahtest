@@ -19,7 +19,6 @@ class RegisterViewModel : ViewModel() {
             try {
                 val response = repository.register(RegisterRequest(nama, email, pass))
                 if (response.isSuccessful) {
-                    // ✅ PERBAIKAN: Ganti user_id menjadi userId
                     val idBaru = response.body()?.userId
                     registerStatus = "Registrasi Berhasil!"
                     onSuccess() // Jalankan navigasi ke Login jika sukses

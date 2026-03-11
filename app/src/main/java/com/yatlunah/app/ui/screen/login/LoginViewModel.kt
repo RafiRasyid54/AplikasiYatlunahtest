@@ -14,7 +14,6 @@ class LoginViewModel : ViewModel() {
     var loginStatus by mutableStateOf("")
     var isLoading by mutableStateOf(false)
 
-    // ✅ SESUAIKAN: Parameter onSuccess sekarang menerima EMPAT String (tambah 'role')
     fun login(email: String, pass: String, onSuccess: (String, String, String, String) -> Unit) {
         viewModelScope.launch {
             isLoading = true

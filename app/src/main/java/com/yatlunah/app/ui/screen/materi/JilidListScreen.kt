@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,33 +18,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-// ✅ Definisikan Model Data Lokal agar tidak "Unresolved Reference"
-data class JilidData(
-    val id: Int,
-    val title: String,
-    val status: String,
-    val progress: Float
-)
+// ✅ Pastikan kedua import ini ada
+import com.yatlunah.app.data.model.JilidData
+import com.yatlunah.app.ui.viewmodel.JilidViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JilidListScreen(
+    viewModel: JilidViewModel = viewModel(),
     onNavigateToDetail: (Int) -> Unit,
-    onNavigateToHome: () -> Unit,
-    onLogout: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToHome: () -> Unit
 ) {
-    // ✅ 1. Sediakan data list secara manual (atau ambil dari ViewModel nantinya)
-    // Di JilidListScreen.kt
-    val listJilid = remember {
-        listOf(
-            JilidData(1, "Iqra Jilid 1", "Tersedia", 1.0f),
-            JilidData(2, "Iqra Jilid 2", "Tersedia", 0.5f),
-            JilidData(3, "Iqra Jilid 3", "Tersedia", 0.0f)
-            // Jilid 4, 5, 6 di-comment dulu atau dihapus
-        )
-    }
+    val listJilid by viewModel.jilidList.collectAsState()
 
     Scaffold(
         topBar = {
@@ -50,34 +39,50 @@ fun JilidListScreen(
                 title = { Text("Daftar Jilid Iqra", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
-    ) { padding ->
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(innerPadding)
                 .background(Color(0xFFF4F5F7)),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(listJilid) { jilid ->
-                JilidCard(jilid = jilid, onClick = { onNavigateToDetail(jilid.id) })
+                JilidCard(
+                    jilid = jilid,
+                    onClick = {
+                        // ✅ KLIK KARTU: Selalu arahkan ke halaman baca PDF (baik online maupun offline)
+                        onNavigateToDetail(jilid.nomorJilid)
+                    },
+                    onDownloadClick = {
+                        // ✅ KLIK IKON DOWNLOAD: Unduh file jika belum ada di HP
+                        if (!jilid.isDownloaded) {
+                            viewModel.downloadJilid(jilid)
+                        }
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun JilidCard(jilid: JilidData, onClick: () -> Unit) {
+fun JilidCard(
+    jilid: JilidData,
+    onClick: () -> Unit,
+    onDownloadClick: () -> Unit // ✅ Tambahkan parameter khusus untuk tombol download
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable { onClick() }, // Kartu diklik untuk BUKA materi
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -86,32 +91,40 @@ fun JilidCard(jilid: JilidData, onClick: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ikon Jilid
             Surface(
                 modifier = Modifier.size(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 color = Color(0xFF00D639).copy(alpha = 0.1f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("${jilid.id}", color = Color(0xFF00D639), fontWeight = FontWeight.Bold)
+                    Text("${jilid.nomorJilid}", color = Color(0xFF00D639), fontWeight = FontWeight.Bold)
                 }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // ✅ Perbaikan: Menggunakan jilid.title, jilid.status sesuai model
-                Text(jilid.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(jilid.status, color = Color.Gray, fontSize = 12.sp)
+                Text(jilid.judulJilid, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Ukuran: ${jilid.fileSize}", color = Color.Gray, fontSize = 12.sp)
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Progress Bar saat sedang mendownload
+                if (jilid.downloadProgress > 0f && jilid.downloadProgress < 1f) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { jilid.downloadProgress },
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        color = Color(0xFF00D639),
+                        trackColor = Color(0xFFEEEEEE)
+                    )
+                }
+            }
 
-                // Progress Bar Kecil
-                LinearProgressIndicator(
-                    progress = { jilid.progress },
-                    modifier = Modifier.fillMaxWidth().height(4.dp),
-                    color = Color(0xFF00D639),
-                    trackColor = Color(0xFFEEEEEE)
+            // ✅ Ikon sekarang menjadi IconButton agar bisa diklik secara terpisah dari kartunya
+            IconButton(onClick = onDownloadClick) {
+                Icon(
+                    imageVector = if (jilid.isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
+                    contentDescription = if (jilid.isDownloaded) "Sudah Diunduh" else "Unduh Jilid",
+                    tint = if (jilid.isDownloaded) Color(0xFF00D639) else Color.LightGray
                 )
             }
         }

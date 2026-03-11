@@ -1,48 +1,46 @@
 package com.yatlunah.app.data.repository
 
-import android.content.Context
-import com.yatlunah.app.R
-import com.yatlunah.app.data.model.JilidItem
-import com.yatlunah.app.data.model.Materi
+import android.util.Log
+import com.yatlunah.app.data.model.JilidData
+import com.yatlunah.app.data.remote.ProgressRequest
+import com.yatlunah.app.data.remote.RetrofitClient
 
 class MateriRepository {
 
-    fun getDaftarJilid(): List<JilidItem> {
-        return listOf(
-            JilidItem(1, "Jilid 1", "Selesai", 1f, "pdf/jilid1.pdf"),
-            JilidItem(2, "Jilid 2", "Sedang Berjalan", 0.3f, "pdf/jilid2.pdf"),
-            JilidItem(3, "Jilid 3", "Belum Mulai", 0f, "pdf/jilid3.pdf"),
-            JilidItem(4, "Jilid 4", "Belum Mulai", 0f, "pdf/jilid4.pdf")
-        )
+    // Mengambil API dari RetrofitClient
+    private val apiService = RetrofitClient.materiApi
+
+    // Mengambil daftar jilid
+    suspend fun getDaftarJilid(): List<JilidData> {
+        return try {
+            apiService.getDaftarJilid()
+        } catch (e: Exception) {
+            Log.e("MateriRepository", "Error getDaftarJilid: ${e.message}")
+            emptyList()
+        }
     }
 
-    // ✅ Tambahkan parameter Context agar bisa mencari resource secara dinamis
-    fun getMateriByHalaman(context: Context, jilidId: Int, halaman: Int): Materi {
+    // Menyimpan progress santri
+    suspend fun saveProgress(userId: String, jilidId: Int, halaman: Int) {
+        try {
+            val request = ProgressRequest(userId, jilidId, halaman)
+            val response = apiService.updateProgressToDatabase(request)
 
-        // 1. Buat pola nama file audio, misal: ji_hal01, ji_hal02, dst.
-        val audioFileName = "ji_hal${String.format("%02d", halaman)}"
-
-        // 2. Cari Resource ID berdasarkan nama file (0 jika tidak ketemu)
-        val resId = context.resources.getIdentifier(audioFileName, "raw", context.packageName)
-
-        return Materi(
-            id = (jilidId * 100) + halaman,
-            jilid = jilidId,
-            halaman = halaman,
-            teks = "Materi Jilid $jilidId Halaman $halaman",
-            // 3. Jika resId ditemukan (bukan 0), gunakan resId tersebut. Jika tidak, beri null.
-            audioResId = if (resId != 0) resId else null,
-            isLatihan = false
-        )
-    }
-    // Di dalam class MateriRepository
-    fun saveProgress(userId: String, jilidId: Int, halaman: Int) {
-        // Simulasi simpan ke Database (PostgreSQL/Supabase)
-        println("Saving progress for user $userId: Jilid $jilidId, Halaman $halaman")
+            // ✅ Menggunakan response.status dari ProgressResponse
+            Log.d("MateriRepository", "Progress Updated: ${response.status}")
+        } catch (e: Exception) {
+            Log.e("MateriRepository", "Error saveProgress: ${e.message}")
+        }
     }
 
-    fun getLastProgress(userId: String, jilidId: Int): Int {
-        // Simulasi ambil data dari Database, default balik ke halaman 1
-        return 1
+    // Mengambil URL Audio untuk materi ustadz
+    suspend fun getAudioUrl(jilidId: Int, halaman: Int): String? {
+        return try {
+            val response = apiService.getAudioUrl(jilidId, halaman)
+            response.audioUrl
+        } catch (e: Exception) {
+            Log.e("MateriRepository", "Error getAudioUrl: ${e.message}")
+            null
+        }
     }
 }
