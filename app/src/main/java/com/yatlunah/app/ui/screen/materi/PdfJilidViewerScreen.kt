@@ -35,7 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yatlunah.app.data.manager.AudioUploadManager
 import com.yatlunah.app.data.remote.RetrofitClient
 import com.yatlunah.app.data.remote.SetoranRequest
-import com.yatlunah.app.ui.viewmodel.JilidViewModel
+import com.yatlunah.app.ui.screen.materi.JilidViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -240,7 +240,7 @@ fun PdfJilidViewerScreen(
                                                         val response = RetrofitClient.materiApi.tambahSetoran(
                                                             SetoranRequest(
                                                                 userId = userId,
-                                                                jilidId = jilidId,
+                                                                jilid = jilidId,
                                                                 halaman = pagerState.currentPage + 1,
                                                                 audioUrl = url  // Link dari Supabase tadi
                                                             )
@@ -270,21 +270,55 @@ fun PdfJilidViewerScreen(
                                         Button(
                                             onClick = {
                                                 if (isRecording) {
-                                                    mediaRecorder?.apply { stop(); release() }
-                                                    mediaRecorder = null
-                                                    isRecording = false; hasRecorded = true
-                                                } else {
-                                                    val file = File(context.cacheDir, "rec_${System.currentTimeMillis()}.m4a")
-                                                    audioFile = file
-                                                    val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()
-                                                    mediaRecorder = recorder.apply {
-                                                        setAudioSource(MediaRecorder.AudioSource.MIC)
-                                                        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                                                        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                                                        setOutputFile(file.absolutePath)
-                                                        prepare(); start()
+                                                    // --- PROSES BERHENTI REKAM ---
+                                                    try {
+                                                        mediaRecorder?.let { recorder ->
+                                                            recorder.stop()
+                                                            recorder.reset()    // ✅ Penting agar file di-finish dengan benar
+                                                            recorder.release()
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        android.util.Log.e("RAFI_DEBUG", "Gagal menghentikan rekaman: ${e.message}")
                                                     }
-                                                    isRecording = true
+                                                    mediaRecorder = null
+                                                    isRecording = false
+                                                    hasRecorded = true
+
+                                                    // ✅ CEK UKURAN FILE DI LOGCAT
+                                                    val size = audioFile?.length() ?: 0
+                                                    android.util.Log.d("RAFI_DEBUG", "Rekaman selesai. Ukuran file: $size bytes")
+
+                                                } else {
+                                                    // --- PROSES MULAI REKAM ---
+                                                    try {
+                                                        val file = File(context.cacheDir, "rec_${System.currentTimeMillis()}.m4a")
+                                                        audioFile = file
+
+                                                        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                                            MediaRecorder(context)
+                                                        } else {
+                                                            @Suppress("DEPRECATION")
+                                                            MediaRecorder()
+                                                        }
+
+                                                        mediaRecorder = recorder.apply {
+                                                            setAudioSource(MediaRecorder.AudioSource.MIC)
+                                                            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                                                            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                                            // ✅ Tambahkan Bitrate agar suara lebih jernih dan ukuran file masuk akal
+                                                            setAudioEncodingBitRate(128000)
+                                                            setAudioSamplingRate(44100)
+                                                            setOutputFile(file.absolutePath)
+
+                                                            prepare()
+                                                            start()
+                                                        }
+                                                        isRecording = true
+                                                        android.util.Log.d("RAFI_DEBUG", "Mulai merekam ke: ${file.absolutePath}")
+                                                    } catch (e: Exception) {
+                                                        android.util.Log.e("RAFI_DEBUG", "Gagal mulai rekaman: ${e.message}")
+                                                        Toast.makeText(context, "Mic tidak tersedia / Izin ditolak", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = if (isRecording) Color.Red else Color(0xFF00D639)),

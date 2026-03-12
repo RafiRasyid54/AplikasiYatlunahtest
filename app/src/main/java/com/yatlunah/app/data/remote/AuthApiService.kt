@@ -48,4 +48,7 @@ interface AuthApiService {
         @Path("role") role: String
     ): Response<List<UserResponse>> // Pastikan UserResponse sudah ada di folder model
 
+    @GET("admin/users/count")
+    suspend fun getUsersCount(): Response<Map<String, Int>>
+
 }

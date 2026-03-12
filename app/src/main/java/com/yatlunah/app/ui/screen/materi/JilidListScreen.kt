@@ -22,7 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 // ✅ Pastikan kedua import ini ada
 import com.yatlunah.app.data.model.JilidData
-import com.yatlunah.app.ui.viewmodel.JilidViewModel
+import com.yatlunah.app.ui.screen.materi.JilidViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

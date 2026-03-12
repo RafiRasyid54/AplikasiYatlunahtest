@@ -29,7 +29,16 @@ interface MateriApiService {
     suspend fun getAntreanSetoran(
         @Path("jilid_id") jilidId: Int
     ): Response<List<Setoran>>
+    @POST("setoran/nilai")
+    suspend fun updateNilaiSetoran( @Body request: PenilaianRequest
+    ): Response<Unit>
+
+    @GET("users/{user_id}/riwayat")
+    suspend fun getRiwayatSetoran(
+        @Path("user_id") userId: String
+    ): Response<List<Setoran>>
 }
+
 
 // --- DATA MODELS (Pastikan semua ini ada di bawah interface) ---
 
@@ -42,15 +51,29 @@ data class ProgressRequest(
 data class ProgressResponse(
     val status: String // ✅ Ini yang dicari oleh Repository
 )
-
 data class SetoranRequest(
-    @SerializedName("user_id") val userId: String,
-    @SerializedName("jilid_id") val jilidId: Int,
-    @SerializedName("halaman") val halaman: Int,
-    @SerializedName("audio_url") val audioUrl: String
+    @SerializedName("user_id")
+    val userId: String,
+
+    @SerializedName("jilid")
+    val jilid: Int,
+
+    @SerializedName("halaman")
+    val halaman: Int,
+
+    @SerializedName("audio_url")
+    val audioUrl: String
 )
 
 data class AudioResponse(
     @SerializedName("audio_url") val audioUrl: String?,
     @SerializedName("judul_materi") val judulMateri: String?
+)
+
+// Update data class untuk kirim nilai
+data class PenilaianRequest(
+    @SerializedName("setoran_id") val setoranId: Int,
+    @SerializedName("nilai") val nilai: Int,
+    @SerializedName("catatan") val catatan: String,
+    @SerializedName("id_guru_penilai") val idGuru: String // ✅ Tambahkan ini agar masuk ke DB
 )

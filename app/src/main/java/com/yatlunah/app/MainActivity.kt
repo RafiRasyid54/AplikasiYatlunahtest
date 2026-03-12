@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit
 
 // --- IMPORT MODEL ---
 import com.yatlunah.app.data.model.Setoran
+import com.yatlunah.app.ui.screen.admin.AdminDashboardScreen
 
 // --- IMPORT SCREEN UMUM ---
 import com.yatlunah.app.ui.screen.login.LoginScreen
@@ -42,6 +43,8 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+// ... import lainnya tetap sama ...
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,25 +61,36 @@ class MainActivity : ComponentActivity() {
                         startDestination = "splash"
                     ) {
                         // --- 1. SPLASH & LOGIN ---
+                        // (Tetap sama seperti kode Anda)
                         composable("splash") {
                             SplashScreen(onTimeout = {
                                 navController.navigate("login") { popUpTo("splash") { inclusive = true } }
                             })
                         }
 
+                        // Di MainActivity.kt bagian LoginScreen
                         composable("login") {
                             LoginScreen(
                                 onNavigateToRegister = { navController.navigate("register") },
                                 onLoginSuccess = { userId, namaUser, emailUser, role ->
                                     val encodedId = URLEncoder.encode(userId, "UTF-8")
                                     val encodedName = URLEncoder.encode(namaUser, "UTF-8")
-                                    when (role.lowercase()) {
-                                        "admin", "guru" -> {
+
+                                    // ✅ BERSIHKAN STRING ROLE
+                                    val cleanRole = role.lowercase().trim()
+
+                                    when (cleanRole) {
+                                        "admin" -> {
+                                            navController.navigate("dashboard_admin/$encodedId/$encodedName") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        }
+                                        "guru" -> {
                                             navController.navigate("dashboard_guru/$encodedId/$encodedName") {
                                                 popUpTo("login") { inclusive = true }
                                             }
                                         }
-                                        else -> {
+                                        else -> { // Santri / Peserta
                                             val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                             navController.navigate("dashboard_user/$encodedId/$encodedName/$encodedEmail") {
                                                 popUpTo("login") { inclusive = true }
@@ -95,92 +109,100 @@ class MainActivity : ComponentActivity() {
 
                             GuruDashboardScreen(
                                 namaGuru = nameGuru,
-                                onNavigateToAntrean = { navController.navigate("guru_menu_jilid") },
+                                onNavigateToAntrean = {
+                                    // Kirim ID Guru agar bisa digunakan saat penilaian nanti
+                                    navController.navigate("guru_menu_jilid/$idGuru")
+                                },
                                 onNavigateToProfile = {
                                     navController.navigate("profile/$idGuru/$encodedName/guru@yatlunah.com")
                                 }
                             )
                         }
 
-                        // --- 3. GURU: MENU PILIH JILID (DENGAN NAVBAR) ---
-                        composable("guru_menu_jilid") {
-                            // Mengambil data dari antrean sebelumnya jika diperlukan,
-                            // namun di sini kita fokus pada parameter yang sesuai dengan GuruJilidMenuScreen terbaru.
-                            GuruJilidMenuScreen(
-                                onNavigateToHome = {
-                                    navController.popBackStack()
-                                },
+                        composable(
+                            route = "dashboard_admin/{id}/{nama}", // ✅ Pastikan ada 2 parameter
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val rawName = backStackEntry.arguments?.getString("nama") ?: ""
+                            val nameAdmin = URLDecoder.decode(rawName, "UTF-8")
+
+                            AdminDashboardScreen(
+                                namaAdmin = nameAdmin,
+                                onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToProfile = {
-                                    // Sesuaikan dengan kebutuhan navigasi profil guru
-                                    navController.navigate("login") // Contoh sementara
-                                },
-                                onNavigateToQueue = { jilidId ->
-                                    navController.navigate("guru_antrean/$jilidId")
+                                    navController.navigate("profile/$id/$rawName/admin@yatlunah.com")
                                 }
                             )
                         }
 
-                        // --- 4. GURU: DAFTAR ANTREAN PER JILID ---
+                        // --- 3. GURU: MENU PILIH JILID ---
+                        composable("guru_menu_jilid/{idGuru}") { backStackEntry ->
+                            val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
+                            GuruJilidMenuScreen(
+                                onNavigateToHome = { navController.popBackStack() },
+                                onNavigateToProfile = { navController.navigate("login") },
+                                onNavigateToQueue = { jilidId ->
+                                    navController.navigate("guru_antrean/$jilidId/$idGuru")
+                                }
+                            )
+                        }
+
+                        // --- 4. GURU: DAFTAR ANTREAN ---
                         composable(
-                            route = "guru_antrean/{jilidId}",
-                            arguments = listOf(navArgument("jilidId") { type = NavType.IntType })
+                            route = "guru_antrean/{jilidId}/{idGuru}",
+                            arguments = listOf(
+                                navArgument("jilidId") { type = NavType.IntType },
+                                navArgument("idGuru") { type = NavType.StringType }
+                            )
                         ) { backStackEntry ->
                             val jilidId = backStackEntry.arguments?.getInt("jilidId") ?: 1
+                            val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
+
                             GuruSetoranQueueScreen(
                                 jilidTarget = jilidId,
                                 onBack = { navController.popBackStack() },
                                 onNavigateToPenilaian = { setoran: Setoran ->
-                                    // ✅ ENCODE Nama dan URL Audio agar tidak error saat navigasi
                                     val encName = URLEncoder.encode(setoran.namaSantri ?: "Siswa", "UTF-8")
                                     val encAudio = URLEncoder.encode(setoran.audioUrl ?: "", "UTF-8")
 
-                                    // ✅ Tambahkan {audioUrl} ke dalam rute navigasi
-                                    navController.navigate("guru_nilai/$encName/${setoran.jilid}/${setoran.halaman}/$encAudio")
+                                    // Tambahkan setoran.id dan idGuru ke rute
+                                    navController.navigate("guru_nilai/${setoran.id}/$idGuru/$encName/${setoran.jilid}/${setoran.halaman}/$encAudio")
                                 }
                             )
                         }
 
-                        // --- 5. GURU: DETAIL PENILAIAN ---
+                        // --- 5. GURU: DETAIL PENILAIAN (UPDATE PARAMETER) ---
                         composable(
-                            route = "guru_nilai/{nama}/{jilid}/{halaman}/{audioUrl}",
+                            route = "guru_nilai/{setoranId}/{idGuru}/{nama}/{jilid}/{halaman}/{audioUrl}",
                             arguments = listOf(
+                                navArgument("setoranId") { type = NavType.IntType },
+                                navArgument("idGuru") { type = NavType.StringType },
                                 navArgument("nama") { type = NavType.StringType },
                                 navArgument("jilid") { type = NavType.IntType },
                                 navArgument("halaman") { type = NavType.IntType },
-                                navArgument("audioUrl") {
-                                    type = NavType.StringType
-                                    nullable = true // ✅ Berikan izin jika null agar tidak crash
-                                    defaultValue = "" // ✅ Berikan default kosong agar log "URL Kosong" terdeteksi
-                                }
+                                navArgument("audioUrl") { type = NavType.StringType; nullable = true; defaultValue = "" }
                             )
                         ) { backStackEntry ->
+                            val sId = backStackEntry.arguments?.getInt("setoranId") ?: 0
+                            val gId = backStackEntry.arguments?.getString("idGuru") ?: ""
                             val nama = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
                             val jilid = backStackEntry.arguments?.getInt("jilid") ?: 1
                             val halaman = backStackEntry.arguments?.getInt("halaman") ?: 1
-
-                            // Ambil raw audio, pastikan tidak null
                             val rawAudio = backStackEntry.arguments?.getString("audioUrl") ?: ""
-
-                            // DEBUG: Lihat di logcat apakah navigasi mengirim string yang benar
-                            android.util.Log.d("RAFI_NAV", "Raw Audio URL dari Nav: $rawAudio")
-
-                            // Lakukan decoding
-                            val audioUrl = try {
-                                URLDecoder.decode(rawAudio, "UTF-8")
-                            } catch (e: Exception) {
-                                ""
-                            }
+                            val audioUrl = URLDecoder.decode(rawAudio, "UTF-8")
 
                             GuruPenilaianDetailScreen(
+                                setoranId = sId,
+                                idGuru = gId,
                                 nama = nama,
                                 jilid = jilid,
                                 halaman = halaman,
                                 audioUrl = audioUrl,
-                                onBack = { navController.popBackStack() },
-                                onConfirm = { nilai, catatan ->
-                                    Toast.makeText(this@MainActivity, "Berhasil menilai $nama", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack()
-                                }
+                                onBack = { navController.popBackStack() }
                             )
                         }
 

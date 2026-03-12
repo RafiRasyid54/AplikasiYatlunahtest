@@ -8,19 +8,24 @@ data class Setoran(
     @SerializedName("user_id")
     val userId: String,
 
-    @SerializedName("nama_lengkap") // Sesuaikan dengan kolom 'nama_lengkap' di DB ✅
+    // Sesuai dengan kolom 'nama_lengkap' di tabel setoran baru
+    @SerializedName("nama_lengkap")
     val namaSantri: String? = null,
 
     val jilid: Int,
     val halaman: Int,
 
-    @SerializedName("audio_url") // Sesuaikan dengan kolom 'audio_url' di DB ✅
+    @SerializedName("audio_url")
     val audioUrl: String,
 
-    val status: String, // "menunggu" atau "dinilai"
+    val status: String, // 'menunggu' atau 'dinilai'
+
     val nilai: Int? = null,
     val catatan: String? = null,
 
-    @SerializedName("created_at") // Sesuaikan dengan kolom 'created_at' di DB ✅
+    @SerializedName("id_guru_penilai")
+    val penilaiId: String? = null, // UUID Guru yang menilai
+
+    @SerializedName("created_at")
     val createdAt: String
 )

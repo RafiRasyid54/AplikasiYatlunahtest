@@ -9,8 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,97 +17,51 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yatlunah.app.data.model.UserResponse
+import com.yatlunah.app.data.remote.RetrofitClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserListScreen(
     role: String,
     onBack: () -> Unit,
-    // ✅ Tambahkan parameter navigasi detail di sini
-    onNavigateToDetail: (String, String, String) -> Unit,
-    viewModel: AdminViewModel = viewModel()
+    onNavigateToDetail: (String, String, String) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    var userList by remember { mutableStateOf<List<UserResponse>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(role) {
-        viewModel.fetchUsersByRole(role)
-    }
-
-    val filteredUsers = viewModel.userList.filter { user ->
-        user.nama_lengkap.contains(searchQuery, ignoreCase = true) ||
-                user.email.contains(searchQuery, ignoreCase = true)
+        try {
+            val response = RetrofitClient.authApi.getUsersByRole(role)
+            if (response.isSuccessful) {
+                userList = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("RAFI_DEBUG", "Gagal ambil list: ${e.message}")
+        } finally {
+            isLoading = false
+        }
     }
 
     Scaffold(
         topBar = {
-            Surface(shadowElevation = 3.dp) {
-                Column(modifier = Modifier.background(Color.White)) {
-                    CenterAlignedTopAppBar(
-                        title = {
-                            Text("Daftar ${role.replaceFirstChar { it.uppercase() }}", fontWeight = FontWeight.Bold)
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                            }
-                        }
-                    )
-
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Cari nama atau email...", fontSize = 14.sp) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = null)
-                                }
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF28A745),
-                            unfocusedBorderColor = Color.LightGray,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        ),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+            TopAppBar(
+                title = { Text("Daftar ${role.replaceFirstChar { it.uppercase() }}") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                    }
                 }
-            }
-        },
-        containerColor = Color(0xFFF4F5F7)
+            )
+        }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (viewModel.isLoading) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF4F5F7))) {
+            if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFF28A745))
-            } else if (filteredUsers.isEmpty()) {
-                Text(
-                    text = if(searchQuery.isEmpty()) "Tidak ada data" else "Nama '$searchQuery' tidak ditemukan",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.Gray
-                )
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
-                ) {
-                    items(filteredUsers) { user ->
-                        // ✅ Sekarang kita panggil parameter onClick-nya
-                        UserItemCard(
-                            name = user.nama_lengkap,
-                            email = user.email,
-                            onClick = {
-                                onNavigateToDetail(user.userId, user.nama_lengkap, user.email)
-                            }
-                        )
+                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(userList) { user ->
+                        UserItem(user) { onNavigateToDetail(user.userId, user.nama_lengkap, user.email) }
                     }
                 }
             }
@@ -118,47 +70,22 @@ fun UserListScreen(
 }
 
 @Composable
-fun UserItemCard(name: String, email: String, onClick: () -> Unit) {
+fun UserItem(user: UserResponse, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp),
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .background(Color(0xFFE8F5E9), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = name.take(1).uppercase(),
-                    color = Color(0xFF28A745),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = Color(0xFF28A745).copy(0.1f)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(user.nama_lengkap.take(1).uppercase(), color = Color(0xFF28A745), fontWeight = FontWeight.Bold)
+                }
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
+            Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(
-                    text = name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF333333)
-                )
-                Text(
-                    text = email,
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Text(user.nama_lengkap, fontWeight = FontWeight.Bold)
+                Text(user.email, fontSize = 12.sp, color = Color.Gray)
             }
         }
     }

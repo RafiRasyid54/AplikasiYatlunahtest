@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yatlunah.app.data.model.Setoran
-import com.yatlunah.app.ui.viewmodel.GuruViewModel
+import com.yatlunah.app.ui.screen.guru.GuruViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

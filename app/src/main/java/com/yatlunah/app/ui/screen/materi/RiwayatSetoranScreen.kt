@@ -19,16 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// ✅ Data Model
-data class SetoranDummy(
-    val jilid: Int,
-    val halaman: Int,
-    val tanggal: String,
-    val status: String, // "Menunggu" atau "Dinilai"
-    val nilai: Int?,
-    val catatan: String?
-)
+import com.yatlunah.app.data.model.Setoran // ✅ Pastikan path model Setoran benar
+import com.yatlunah.app.data.remote.RetrofitClient // ✅ Pastikan path RetrofitClient benar
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,16 +29,23 @@ fun RiwayatSetoranScreen(
     userId: String,
     onBack: () -> Unit
 ) {
-    // ✅ State untuk melacak jilid mana yang sedang dibuka
     var selectedJilid by remember { mutableStateOf<Int?>(null) }
+    var listRiwayat by remember { mutableStateOf<List<Setoran>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // Simulasi data dari server (Nanti ditarik berdasarkan userId)
-    val listRiwayat = listOf(
-        SetoranDummy(1, 10, "10 Mar 2026", "Menunggu", null, null),
-        SetoranDummy(1, 5, "08 Mar 2026", "Dinilai", 85, "Alhamdulillah lancar, perhatikan panjang pendeknya."),
-        SetoranDummy(1, 1, "05 Mar 2026", "Dinilai", 90, "Sempurna! Lanjutkan."),
-        SetoranDummy(2, 3, "12 Mar 2026", "Menunggu", null, null)
-    )
+    // Mengambil data dari Backend
+    LaunchedEffect(userId) {
+        try {
+            val response = RetrofitClient.materiApi.getRiwayatSetoran(userId)
+            if (response.isSuccessful) {
+                listRiwayat = response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            // Error handling bisa ditambahkan Toast di sini
+        } finally {
+            isLoading = false
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -58,36 +58,28 @@ fun RiwayatSetoranScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        // Jika sedang di dalam jilid, balik ke daftar jilid. Jika di daftar jilid, balik ke menu belajar.
                         if (selectedJilid != null) selectedJilid = null else onBack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                }
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF4F5F7))
                 .padding(innerPadding)
         ) {
-            if (selectedJilid == null) {
-                // --- TAHAP 1: DAFTAR JILID ---
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (selectedJilid == null) {
+                // --- DAFTAR JILID ---
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item {
-                        Text(
-                            "Pilih Jilid untuk melihat penilaian:",
-                            fontSize = 14.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
                     items((1..6).toList()) { nomor ->
                         FolderJilidCard(nomor = nomor) {
                             selectedJilid = nomor
@@ -95,13 +87,15 @@ fun RiwayatSetoranScreen(
                     }
                 }
             } else {
-                // --- TAHAP 2: DAFTAR SETORAN DI JILID TERSEBUT ---
+                // --- DAFTAR SETORAN DI JILID TERSEBUT ---
                 val filteredList = listRiwayat.filter { it.jilid == selectedJilid }
 
                 if (filteredList.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Belum ada setoran di Jilid $selectedJilid", color = Color.Gray)
-                    }
+                    Text(
+                        "Belum ada setoran di Jilid $selectedJilid",
+                        color = Color.Gray,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
@@ -124,8 +118,7 @@ fun FolderJilidCard(nomor: Int, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -147,24 +140,22 @@ fun FolderJilidCard(nomor: Int, onClick: () -> Unit) {
             Text(
                 text = "Riwayat Jilid $nomor",
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
+            Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
         }
     }
 }
 
 @Composable
-fun RiwayatCard(setoran: SetoranDummy) {
-    val isDinilai = setoran.status == "Dinilai"
+fun RiwayatCard(setoran: Setoran) {
+    val isDinilai = setoran.status == "dinilai"
     val statusColor = if (isDinilai) Color(0xFF00D639) else Color(0xFFFFA000)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -172,13 +163,13 @@ fun RiwayatCard(setoran: SetoranDummy) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = setoran.tanggal, fontSize = 12.sp, color = Color.Gray)
+                Text(text = setoran.createdAt?.take(10) ?: "-", fontSize = 12.sp, color = Color.Gray)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = statusColor.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = setoran.status,
+                        text = if (isDinilai) "Dinilai" else "Menunggu",
                         color = statusColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
@@ -188,35 +179,20 @@ fun RiwayatCard(setoran: SetoranDummy) {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Halaman ${setoran.halaman}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.DarkGray
-            )
+            Text(text = "Halaman ${setoran.halaman}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
 
             if (isDinilai) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row {
                     Text("Nilai: ", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text(
-                        text = "${setoran.nilai} / 100",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp,
-                        color = Color(0xFF00D639)
-                    )
+                    Text(text = "${setoran.nilai}", fontWeight = FontWeight.ExtraBold, color = Color(0xFF00D639))
                 }
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Catatan Ustadz:\n\"${setoran.catatan}\"",
-                    fontSize = 13.sp,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    color = Color.Gray,
-                    lineHeight = 18.sp
+                    text = "Catatan Ustadz: ${setoran.catatan ?: "-"}",
+                    fontSize = 13.sp, color = Color.Gray
                 )
             }
         }
