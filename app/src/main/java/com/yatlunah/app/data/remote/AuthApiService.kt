@@ -1,8 +1,6 @@
 package com.yatlunah.app.data.remote
 
 import com.yatlunah.app.data.model.*
-import com.yatlunah.app.data.remote.dto.UpdateNameRequest
-import com.yatlunah.app.data.remote.dto.UpdatePasswordRequest
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
@@ -20,21 +18,26 @@ interface AuthApiService {
     @POST("login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
-    // --- 3. Update Profile (Nama) ---
-    // Pilih satu endpoint yang paling sesuai dengan backend FastAPI kamu
+    // --- 3. Update Profile ---
     @PUT("users/{id}/name")
     suspend fun updateName(
         @Path("id") userId: String,
-        @Body request: UserNameUpdate // 👈 Harus pakai ini
+        @Body request: UserNameUpdate
     ): Response<AuthResponse>
 
     @PUT("users/{id}/password")
     suspend fun updatePassword(
         @Path("id") userId: String,
-        @Body request: UserPasswordUpdate // 👈 Harus pakai ini
+        @Body request: UserPasswordUpdate
     ): Response<AuthResponse>
 
-    // --- 5. Progres Belajar ---
+    // --- 4. Penilaian Guru & Update Progress Otomatis ---
+    @POST("setoran/nilai")
+    suspend fun beriNilaiSetoran(
+        @Body request: SetoranPenilaianRequest
+    ): Response<AuthResponse>
+
+    // --- 5. Progres Belajar manual ---
     @POST("users/{user_id}/update_progress")
     suspend fun updateProgress(
         @Path("user_id") userId: String,
@@ -42,13 +45,35 @@ interface AuthApiService {
         @Query("halaman") halaman: Int
     ): Response<ResponseBody>
 
-    // mengambil data user untuk admin
+    // --- 6. Admin Panel ---
     @GET("admin/users/{role}")
     suspend fun getUsersByRole(
         @Path("role") role: String
-    ): Response<List<UserResponse>> // Pastikan UserResponse sudah ada di folder model
+    ): Response<List<UserResponse>>
 
     @GET("admin/users/count")
     suspend fun getUsersCount(): Response<Map<String, Int>>
 
+    @PUT("admin/users/{user_id}/role")
+    suspend fun updateRole(
+        @Path("user_id") userId: String,
+        @Query("new_role") role: String
+    ): Response<AuthResponse>
+
+    // PERBAIKAN: Gunakan @Query agar sesuai dengan FastAPI
+    @POST("admin/quotes")
+    suspend fun addQuote(
+        @Query("teks") teks: String,
+        @Query("sumber") sumber: String
+    ): Response<AuthResponse>
+
+    @GET("quote/random") // Sesuaikan endpoint dengan backend
+    suspend fun getRandomQuote(): Response<QuotesHarian>
+
+    @FormUrlEncoded
+    @POST("user/update-role") // Sesuaikan dengan endpoint backend Anda
+    suspend fun updateUserRole(
+        @Field("id") userId: String,
+        @Field("role") role: String
+    ): Response<Void>
 }

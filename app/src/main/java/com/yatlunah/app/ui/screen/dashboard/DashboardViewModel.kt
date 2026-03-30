@@ -5,7 +5,11 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yatlunah.app.data.repository.AuthRepository
+import com.yatlunah.app.data.model.QuotesHarian
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DashboardViewModel : ViewModel() {
     private val repository = AuthRepository()
@@ -13,31 +17,54 @@ class DashboardViewModel : ViewModel() {
     var streak by mutableStateOf("0 Hari")
     var lastRead by mutableStateOf("Jilid 1")
     var lastPage by mutableStateOf("Hal. 0")
-
-    // ✅ Perbaikan: Gunakan mutableFloatStateOf agar lebih optimal
     var progressPercent by mutableFloatStateOf(0f)
-
     var isLoading by mutableStateOf(false)
+    var currentQuote by mutableStateOf("Memuat inspirasi...")
+    var currentSource by mutableStateOf("")
 
     fun fetchStats(userId: String) {
-        viewModelScope.launch {
+        // Tambahkan Dispatchers.IO di sini agar tidak mengunci layar
+        viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
             try {
                 val response = repository.getUserStats(userId)
-                // Di dalam DashboardViewModel.kt
-                if (response.isSuccessful) {
-                    val data = response.body()
-                    streak = "${data?.currentStreak ?: 0} Hari"
-                    lastRead = "Jilid ${data?.lastJilid ?: 1}"
-                    lastPage = "Halaman ${data?.lastHalaman ?: 0}"
-
-                    // ✅ Sekarang sudah sinkron dengan model
-                    progressPercent = data?.totalProgress ?: 0f
+                // Update state UI harus kembali ke Dispatchers.Main
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val data = response.body()
+                        streak = "${data?.currentStreak ?: 0} Hari"
+                        lastRead = "Jilid ${data?.lastJilid ?: 1}"
+                        lastPage = "Halaman ${data?.lastHalaman ?: 0}"
+                        progressPercent = data?.totalProgress ?: 0f
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("DashboardVM", "Error: ${e.message}")
             } finally {
-                isLoading = false
+                // Pastikan isLoading berhenti di thread utama
+                withContext(Dispatchers.Main) { isLoading = false }
+            }
+        }
+    }
+
+    fun startQuoteTimer() {
+        viewModelScope.launch {
+            while (true) {
+                try {
+                    val response = repository.getRandomQuote()
+                    if (response.isSuccessful) {
+                        val data = response.body()
+                        currentQuote = data?.teksQuote ?: "Tidak ada kutipan"
+                        currentSource = data?.sumber ?: ""
+                    }
+                    // Pindahkan delay ke sini agar tetap ada jeda meskipun sukses/gagal
+                    delay(300000L)
+                } catch (e: Exception) {
+                    Log.e("DashboardVM", "Error fetchQuote: ${e.message}")
+                    // Jika error, tunggu sebentar (misal 30 detik) sebelum mencoba lagi
+                    // agar tidak terjadi looping error yang sangat cepat
+                    delay(30000L)
+                }
             }
         }
     }

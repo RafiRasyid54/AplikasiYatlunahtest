@@ -1,7 +1,6 @@
 package com.yatlunah.app
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,10 +15,11 @@ import androidx.navigation.navArgument
 import androidx.work.*
 import com.yatlunah.app.data.worker.NotificationWorker
 import java.util.concurrent.TimeUnit
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 // --- IMPORT MODEL ---
 import com.yatlunah.app.data.model.Setoran
-import com.yatlunah.app.ui.screen.admin.AdminDashboardScreen
 
 // --- IMPORT SCREEN UMUM ---
 import com.yatlunah.app.ui.screen.login.LoginScreen
@@ -30,6 +30,7 @@ import com.yatlunah.app.ui.screen.splash.SplashScreen
 import com.yatlunah.app.ui.screen.profile.ProfileScreen
 
 // --- IMPORT SCREEN GURU & ADMIN ---
+import com.yatlunah.app.ui.screen.admin.AdminDashboardScreen
 import com.yatlunah.app.ui.screen.guru.GuruDashboardScreen
 import com.yatlunah.app.ui.screen.guru.GuruPenilaianDetailScreen
 import com.yatlunah.app.ui.screen.guru.GuruSetoranQueueScreen
@@ -39,11 +40,6 @@ import com.yatlunah.app.ui.screen.admin.UserListScreen
 import com.yatlunah.app.ui.screen.admin.UserDetailScreen
 
 import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-
-// ... import lainnya tetap sama ...
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,22 +57,20 @@ class MainActivity : ComponentActivity() {
                         startDestination = "splash"
                     ) {
                         // --- 1. SPLASH & LOGIN ---
-                        // (Tetap sama seperti kode Anda)
                         composable("splash") {
                             SplashScreen(onTimeout = {
-                                navController.navigate("login") { popUpTo("splash") { inclusive = true } }
+                                navController.navigate("login") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
                             })
                         }
 
-                        // Di MainActivity.kt bagian LoginScreen
                         composable("login") {
                             LoginScreen(
                                 onNavigateToRegister = { navController.navigate("register") },
                                 onLoginSuccess = { userId, namaUser, emailUser, role ->
                                     val encodedId = URLEncoder.encode(userId, "UTF-8")
                                     val encodedName = URLEncoder.encode(namaUser, "UTF-8")
-
-                                    // ✅ BERSIHKAN STRING ROLE
                                     val cleanRole = role.lowercase().trim()
 
                                     when (cleanRole) {
@@ -90,7 +84,7 @@ class MainActivity : ComponentActivity() {
                                                 popUpTo("login") { inclusive = true }
                                             }
                                         }
-                                        else -> { // Santri / Peserta
+                                        else -> {
                                             val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                             navController.navigate("dashboard_user/$encodedId/$encodedName/$encodedEmail") {
                                                 popUpTo("login") { inclusive = true }
@@ -110,7 +104,6 @@ class MainActivity : ComponentActivity() {
                             GuruDashboardScreen(
                                 namaGuru = nameGuru,
                                 onNavigateToAntrean = {
-                                    // Kirim ID Guru agar bisa digunakan saat penilaian nanti
                                     navController.navigate("guru_menu_jilid/$idGuru")
                                 },
                                 onNavigateToProfile = {
@@ -120,7 +113,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(
-                            route = "dashboard_admin/{id}/{nama}", // ✅ Pastikan ada 2 parameter
+                            route = "dashboard_admin/{id}/{nama}",
                             arguments = listOf(
                                 navArgument("id") { type = NavType.StringType },
                                 navArgument("nama") { type = NavType.StringType }
@@ -139,7 +132,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 3. GURU: MENU PILIH JILID ---
+                        // --- 3. GURU FLOW ---
                         composable("guru_menu_jilid/{idGuru}") { backStackEntry ->
                             val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
                             GuruJilidMenuScreen(
@@ -151,15 +144,8 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 4. GURU: DAFTAR ANTREAN ---
-                        composable(
-                            route = "guru_antrean/{jilidId}/{idGuru}",
-                            arguments = listOf(
-                                navArgument("jilidId") { type = NavType.IntType },
-                                navArgument("idGuru") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val jilidId = backStackEntry.arguments?.getInt("jilidId") ?: 1
+                        composable("guru_antrean/{jilidId}/{idGuru}") { backStackEntry ->
+                            val jilidId = backStackEntry.arguments?.getString("jilidId")?.toInt() ?: 1
                             val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
 
                             GuruSetoranQueueScreen(
@@ -168,45 +154,28 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToPenilaian = { setoran: Setoran ->
                                     val encName = URLEncoder.encode(setoran.namaSantri ?: "Siswa", "UTF-8")
                                     val encAudio = URLEncoder.encode(setoran.audioUrl ?: "", "UTF-8")
-
-                                    // Tambahkan setoran.id dan idGuru ke rute
                                     navController.navigate("guru_nilai/${setoran.id}/$idGuru/$encName/${setoran.jilid}/${setoran.halaman}/$encAudio")
                                 }
                             )
                         }
 
-                        // --- 5. GURU: DETAIL PENILAIAN (UPDATE PARAMETER) ---
-                        composable(
-                            route = "guru_nilai/{setoranId}/{idGuru}/{nama}/{jilid}/{halaman}/{audioUrl}",
-                            arguments = listOf(
-                                navArgument("setoranId") { type = NavType.IntType },
-                                navArgument("idGuru") { type = NavType.StringType },
-                                navArgument("nama") { type = NavType.StringType },
-                                navArgument("jilid") { type = NavType.IntType },
-                                navArgument("halaman") { type = NavType.IntType },
-                                navArgument("audioUrl") { type = NavType.StringType; nullable = true; defaultValue = "" }
-                            )
-                        ) { backStackEntry ->
-                            val sId = backStackEntry.arguments?.getInt("setoranId") ?: 0
+                        composable("guru_nilai/{setoranId}/{idGuru}/{nama}/{jilid}/{halaman}/{audioUrl}") { backStackEntry ->
+                            val sId = backStackEntry.arguments?.getString("setoranId")?.toInt() ?: 0
                             val gId = backStackEntry.arguments?.getString("idGuru") ?: ""
                             val nama = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
-                            val jilid = backStackEntry.arguments?.getInt("jilid") ?: 1
-                            val halaman = backStackEntry.arguments?.getInt("halaman") ?: 1
+                            val jilid = backStackEntry.arguments?.getString("jilid")?.toInt() ?: 1
+                            val halaman = backStackEntry.arguments?.getString("halaman")?.toInt() ?: 1
                             val rawAudio = backStackEntry.arguments?.getString("audioUrl") ?: ""
                             val audioUrl = URLDecoder.decode(rawAudio, "UTF-8")
 
                             GuruPenilaianDetailScreen(
-                                setoranId = sId,
-                                idGuru = gId,
-                                nama = nama,
-                                jilid = jilid,
-                                halaman = halaman,
-                                audioUrl = audioUrl,
+                                setoranId = sId, idGuru = gId, nama = nama,
+                                jilid = jilid, halaman = halaman, audioUrl = audioUrl,
                                 onBack = { navController.popBackStack() }
                             )
                         }
 
-                        // --- 6. USER SECTION (SANTRI) ---
+                        // --- 4. USER FLOW ---
                         composable("dashboard_user/{id}/{nama}/{email}") { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val name = backStackEntry.arguments?.getString("nama") ?: ""
@@ -225,15 +194,12 @@ class MainActivity : ComponentActivity() {
                             val email = backStackEntry.arguments?.getString("email") ?: ""
                             MenuBelajarScreen(
                                 namaUser = URLDecoder.decode(name, "UTF-8"),
-                                onNavigateToHome = { navController.navigate("dashboard_user/$id/$name/$email") { popUpTo(0) } },
+                                onNavigateToHome = { navController.popBackStack() },
                                 onNavigateToProfile = { navController.navigate("profile/$id/$name/$email") },
                                 onNavigateToMateri = { navController.navigate("list_jilid/$id/$name/$email") },
                                 onNavigateToRiwayat = { navController.navigate("riwayat_setoran/$id") }
                             )
                         }
-
-                        // --- 7. REGISTER, PROFILE, JILID, RIWAYAT ---
-                        composable("register") { RegisterScreen(onNavigateToLogin = { navController.popBackStack() }) }
 
                         composable("profile/{id}/{nama}/{email}") { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
@@ -247,6 +213,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        composable("baca_jilid/{jilidId}/{userId}") { backStackEntry ->
+                            val jid = backStackEntry.arguments?.getString("jilidId")?.toInt()?.let { if (it <= 0) 1 else it } ?: 1
+                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
+                            PdfJilidViewerScreen(jilidId = jid, userId = uid, onBack = { navController.popBackStack() })
+                        }
+
                         composable("riwayat_setoran/{userId}") { backStackEntry ->
                             val uid = backStackEntry.arguments?.getString("userId") ?: ""
                             RiwayatSetoranScreen(userId = uid, onBack = { navController.popBackStack() })
@@ -254,32 +226,20 @@ class MainActivity : ComponentActivity() {
 
                         composable("list_jilid/{id}/{nama}/{email}") { backStackEntry ->
                             val uid = backStackEntry.arguments?.getString("id") ?: ""
+
                             JilidListScreen(
-                                onNavigateToDetail = { jid -> navController.navigate("baca_jilid/$jid/$uid") },
+                                // ✅ PERBAIKAN: Hanya terima 'jid' (Int) dari screen,
+                                // lalu gunakan 'uid' yang sudah kita ambil di atas.
+                                onNavigateToDetail = { jid ->
+                                    navController.navigate("baca_jilid/$jid/$uid")
+                                },
                                 onNavigateToHome = { navController.popBackStack() }
                             )
                         }
 
-                        composable(
-                            route = "baca_jilid/{jilidId}/{userId}",
-                            arguments = listOf(
-                                navArgument("jilidId") { type = NavType.IntType }
-                            )
-                        ) { backStackEntry ->
-                            // Ambil jilidId, jika null atau 0, paksa ke 1 agar tidak error "URL Kosong"
-                            val jidParam = backStackEntry.arguments?.getInt("jilidId") ?: 1
-                            val jid = if (jidParam <= 0) 1 else jidParam // <-- Tambahkan logika ini
+                        // --- 5. REGISTER & ADMIN FLOW ---
+                        composable("register") { RegisterScreen(onNavigateToLogin = { navController.popBackStack() }) }
 
-                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
-
-                            PdfJilidViewerScreen(
-                                jilidId = jid,
-                                userId = uid,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
-
-                        // --- 8. ADMIN SECTION ---
                         composable("user_management") {
                             UserManagementMenuScreen(
                                 onBack = { navController.popBackStack() },
@@ -290,20 +250,36 @@ class MainActivity : ComponentActivity() {
                         composable("user_list/{role}") { backStackEntry ->
                             val r = backStackEntry.arguments?.getString("role") ?: "peserta"
                             UserListScreen(
-                                role = r, onBack = { navController.popBackStack() },
-                                onNavigateToDetail = { id: String, n: String, e: String ->
+                                role = r,
+                                onBack = { navController.popBackStack() },
+                                onNavigateToDetail = { id, n, e ->
                                     val en = URLEncoder.encode(n, "UTF-8")
                                     val ee = URLEncoder.encode(e, "UTF-8")
-                                    navController.navigate("user_detail/$id/$en/$ee")
+                                    // Melemparkan role 'r' agar UserDetailScreen tahu initial role-nya
+                                    navController.navigate("user_detail/$id/$en/$ee/$r")
                                 }
                             )
                         }
 
-                        composable("user_detail/{id}/{nama}/{email}") { backStackEntry ->
+                        composable(
+                            route = "user_detail/{id}/{nama}/{email}/{role}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val n = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
                             val e = URLDecoder.decode(backStackEntry.arguments?.getString("email") ?: "", "UTF-8")
-                            UserDetailScreen(userId = id, userName = n, userEmail = e, onBack = { navController.popBackStack() })
+                            val r = backStackEntry.arguments?.getString("role") ?: "peserta"
+
+                            UserDetailScreen(
+                                userId = id, userName = n, userEmail = e,
+                                initialRole = r, // Sesuai dengan parameter baru
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                     }
                 }
@@ -312,8 +288,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupDailyNotification() {
-        val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-            .setInitialDelay(10, TimeUnit.SECONDS).build()
-        WorkManager.getInstance(this).enqueueUniqueWork("yatlunah_notif", ExistingWorkPolicy.REPLACE, workRequest)
+        val workRequest = PeriodicWorkRequestBuilder<NotificationWorker>(24, TimeUnit.HOURS)
+            .setInitialDelay(10, TimeUnit.SECONDS)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "yatlunah_notif",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }

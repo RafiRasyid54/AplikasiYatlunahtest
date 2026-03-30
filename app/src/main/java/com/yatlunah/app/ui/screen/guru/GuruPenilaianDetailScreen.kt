@@ -6,7 +6,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,20 +22,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yatlunah.app.ui.screen.guru.GuruViewModel
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuruPenilaianDetailScreen(
-    setoranId: Int,      // ✅ Tambahan: ID unik dari tabel setoran
-    idGuru: String,      // ✅ Tambahan: ID Guru yang sedang login
+    setoranId: Int,
+    idGuru: String,
     nama: String,
     jilid: Int,
     halaman: Int,
-    audioUrl: String,
+    audioUrl: String, // 👈 Pastikan ini URL lengkap: https://...
     onBack: () -> Unit,
-    viewModel: GuruViewModel = viewModel() // ✅ Hubungkan ke ViewModel
+    viewModel: GuruViewModel = viewModel()
 ) {
     val context = LocalContext.current
     var nilai by remember { mutableStateOf("") }
@@ -46,32 +44,58 @@ fun GuruPenilaianDetailScreen(
     // --- LOGIKA MEDIA PLAYER ---
     var isPlaying by remember { mutableStateOf(false) }
     var isPrepared by remember { mutableStateOf(false) }
+    var isError by remember { mutableStateOf(false) } // Deteksi error audio
     var duration by remember { mutableFloatStateOf(0f) }
     var currentPosition by remember { mutableFloatStateOf(0f) }
+
     val mediaPlayer = remember { MediaPlayer() }
 
     DisposableEffect(audioUrl) {
         try {
+            isError = false
+            isPrepared = false
             mediaPlayer.apply {
                 reset()
-                setAudioAttributes(AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA).build())
-                if (audioUrl.isNotEmpty()) {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+
+                // Pastikan audioUrl tidak kosong dan diawali http
+                if (audioUrl.isNotEmpty() && audioUrl.startsWith("http")) {
                     setDataSource(audioUrl)
                     prepareAsync()
+                    Log.d("AUDIO_CHECK", "Menyiapkan audio: $audioUrl")
+                } else {
+                    isError = true
+                    Log.e("AUDIO_CHECK", "URL tidak valid: $audioUrl")
                 }
+
                 setOnPreparedListener {
                     isPrepared = true
                     duration = it.duration.toFloat()
+                    Log.d("AUDIO_CHECK", "Audio Siap!")
                 }
+
+                setOnErrorListener { _, what, extra ->
+                    isError = true
+                    isPrepared = false
+                    Log.e("AUDIO_CHECK", "MediaPlayer Error: $what, $extra")
+                    true
+                }
+
                 setOnCompletionListener {
                     isPlaying = false
                     currentPosition = 0f
                     seekTo(0)
                 }
             }
-        } catch (e: Exception) { Log.e("AUDIO_PLAYER", "Error: ${e.message}") }
+        } catch (e: Exception) {
+            isError = true
+            Log.e("AUDIO_PLAYER", "Exception: ${e.message}")
+        }
         onDispose { mediaPlayer.release() }
     }
 
@@ -122,27 +146,44 @@ fun GuruPenilaianDetailScreen(
                 shape = RoundedCornerShape(25.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF333333))
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        if (isPrepared) {
-                            if (isPlaying) mediaPlayer.pause() else mediaPlayer.start()
-                            isPlaying = !isPlaying
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                if (isPrepared) {
+                                    if (isPlaying) mediaPlayer.pause() else mediaPlayer.start()
+                                    isPlaying = !isPlaying
+                                }
+                            },
+                            enabled = isPrepared
+                        ) {
+                            if (!isPrepared && !isError) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(
+                                    if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    null,
+                                    tint = if (isError) Color.Red else Color.White
+                                )
+                            }
                         }
-                    }) {
-                        Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = Color.White)
+
+                        Text(formatTime(currentPosition.toInt()), color = Color.White, fontSize = 11.sp)
+
+                        Slider(
+                            value = currentPosition,
+                            onValueChange = { currentPosition = it; mediaPlayer.seekTo(it.toInt()) },
+                            valueRange = 0f..(if (duration > 0) duration else 1f),
+                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                            colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = brightGreen)
+                        )
+
+                        Text(formatTime(duration.toInt()), color = Color.White, fontSize = 11.sp)
                     }
-                    Text(formatTime(currentPosition.toInt()), color = Color.White, fontSize = 11.sp)
-                    Slider(
-                        value = currentPosition,
-                        onValueChange = { currentPosition = it; mediaPlayer.seekTo(it.toInt()) },
-                        valueRange = 0f..(if (duration > 0) duration else 1f),
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                        colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = brightGreen)
-                    )
-                    Text(formatTime(duration.toInt()), color = Color.White, fontSize = 11.sp)
+
+                    if (isError) {
+                        Text("Gagal memuat audio. Cek koneksi atau link Supabase.", color = Color.Red, fontSize = 10.sp, modifier = Modifier.padding(start = 12.dp))
+                    }
                 }
             }
 
@@ -171,12 +212,10 @@ fun GuruPenilaianDetailScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // --- TOMBOL SUBMIT (SINKRON DENGAN VIEWMODEL) ---
             Button(
                 onClick = {
                     val score = nilai.toIntOrNull()
                     if (score != null && score in 0..100) {
-                        // ✅ Panggil fungsi submit dari ViewModel
                         viewModel.submitPenilaian(
                             setoranId = setoranId,
                             nilai = score,
@@ -194,7 +233,7 @@ fun GuruPenilaianDetailScreen(
                         Toast.makeText(context, "Nilai tidak valid", Toast.LENGTH_SHORT).show()
                     }
                 },
-                enabled = !isLoading, // Disable saat loading
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007BFF))
@@ -211,7 +250,6 @@ fun GuruPenilaianDetailScreen(
     }
 }
 
-// ✅ FUNGSI HELPER (Taruh di luar Composable tapi di dalam file yang sama)
 private fun formatTime(ms: Int): String {
     val totalSecs = ms / 1000
     val mins = totalSecs / 60

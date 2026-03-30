@@ -65,6 +65,8 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.5.0")
     implementation("io.github.jan-tennert.supabase:storage-kt:2.5.0")
     implementation("io.ktor:ktor-client-android:2.3.12")
+    implementation("androidx.compose.material3:material3:1.2.1")
+    implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

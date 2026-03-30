@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yatlunah.app.data.model.Setoran
+import com.yatlunah.app.data.model.SetoranPenilaianRequest
 import com.yatlunah.app.data.remote.PenilaianRequest
 import com.yatlunah.app.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,35 +43,35 @@ class GuruViewModel : ViewModel() {
     }
 
     // --- 2. KIRIM PENILAIAN (SESUAI TABEL BARU) ---
+    // --- 2. KIRIM PENILAIAN (SESUAI TABEL BARU) ---
     fun submitPenilaian(
         setoranId: Int,
         nilai: Int,
         catatan: String,
-        idGuru: String, // Diambil dari ID Login Guru
+        idGuru: String,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val request = PenilaianRequest(
-                    setoranId = setoranId,
+                // ✅ PERBAIKAN: Gunakan nama parameter yang ada di model (SetoranPenilaianRequest)
+                val request = SetoranPenilaianRequest(
+                    setoranId = setoranId,      // Gunakan 'setoranId' (bukan setoran_id)
                     nilai = nilai,
                     catatan = catatan,
-                    idGuru = idGuru // Sesuai kolom id_guru_penilai
+                    idGuruPenilai = idGuru      // Gunakan 'idGuruPenilai' (bukan id_guru_penilai)
                 )
 
-                val response = RetrofitClient.materiApi.updateNilaiSetoran(request)
-
+                val response = RetrofitClient.authApi.beriNilaiSetoran(request)
                 if (response.isSuccessful) {
-                    Log.d("GURU_VM", "Penilaian Berhasil Dikirim")
                     onSuccess()
                 } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Gagal mengirim nilai"
-                    onError(errorMsg)
+                    onError("Gagal mengirim nilai: ${response.message()}")
                 }
             } catch (e: Exception) {
-                onError("Koneksi Error: ${e.message}")
+                Log.e("GURU_VM", "Error Submit: ${e.message}")
+                onError(e.message ?: "Terjadi kesalahan")
             } finally {
                 _isLoading.value = false
             }

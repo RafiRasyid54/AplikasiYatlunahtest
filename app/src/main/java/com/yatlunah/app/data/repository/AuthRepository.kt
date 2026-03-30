@@ -4,6 +4,9 @@ import com.yatlunah.app.data.model.*
 import com.yatlunah.app.data.remote.RetrofitClient
 import com.yatlunah.app.data.remote.dto.UpdateNameRequest    // ✅ Import yang benar
 import com.yatlunah.app.data.remote.dto.UpdatePasswordRequest // ✅ Import yang benar
+import com.yatlunah.app.data.model.QuotesHarian
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.Response
 
 class AuthRepository {
@@ -14,7 +17,10 @@ class AuthRepository {
     suspend fun login(request: LoginRequest) = apiService.login(request)
 
     // --- Statistik ---
-    suspend fun getUserStats(userId: String) = apiService.getUserStats(userId)
+    // Contoh jika ada pemrosesan data di Repository
+    suspend fun getUserStats(userId: String): Response<UserStats> = withContext(Dispatchers.IO) {
+        apiService.getUserStats(userId)
+    }
 
     suspend fun updateName(userId: String, request: UserNameUpdate) =
         apiService.updateName(userId, request)
@@ -30,5 +36,18 @@ class AuthRepository {
     // Tambahkan di dalam class AuthRepository
     suspend fun getUsersByRole(role: String): Response<List<UserResponse>> {
         return apiService.getUsersByRole(role)
+    }
+
+    suspend fun addQuote(teks: String, sumber: String): Response<AuthResponse> {
+        return RetrofitClient.authApi.addQuote(teks, sumber)
+    }
+    // Di dalam class AuthRepository
+    suspend fun getRandomQuote(): Response<QuotesHarian> {
+        return apiService.getRandomQuote()
+    }
+
+    // Di AuthRepository.kt
+    suspend fun updateUserRole(userId: String, role: String): Response<Void> {
+        return apiService.updateUserRole(userId, role) // Nama fungsi apiService harus sama dengan di ApiService.kt
     }
 }

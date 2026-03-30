@@ -40,7 +40,12 @@ fun DashboardScreen(
     val lightGrayBg = Color(0xFFF4F5F7)
 
     LaunchedEffect(userId) {
-        viewModel.fetchStats(userId)
+        // Beri jeda agar transisi navigasi selesai & layar digambar dulu
+        kotlinx.coroutines.delay(500)
+        if (userId.isNotEmpty()) {
+            viewModel.fetchStats(userId)
+            viewModel.startQuoteTimer()
+        }
     }
 
     val greeting = remember {

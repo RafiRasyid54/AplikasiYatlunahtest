@@ -8,9 +8,11 @@ import com.yatlunah.app.data.model.UserNameUpdate
 import com.yatlunah.app.data.model.UserPasswordUpdate
 import com.yatlunah.app.data.model.UserStats // ✅ Import model statistikmu
 import com.yatlunah.app.data.repository.AuthRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ProfileViewModel : ViewModel() {
     private val repository = AuthRepository()
@@ -84,6 +86,30 @@ class ProfileViewModel : ViewModel() {
                 Log.e("YATLUNAH", e.message.toString())
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    // Di dalam ProfileViewModel.kt
+    // Di dalam ProfilViewModel.kt
+    // Di dalam class ProfilViewModel : ViewModel() { ...
+
+    fun updateUserRole(userId: String, newRole: String, onSuccess: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Pastikan fungsi ini juga sudah ada di AuthRepository.kt Anda!
+                val response = repository.updateUserRole(userId, newRole)
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        onSuccess()
+                        // Opsional: Refresh data statistik setelah role berubah
+                        fetchUserStats(userId)
+                    } else {
+                        Log.e("ProfileVM", "Gagal update role: ${response.message()}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileVM", "Error: ${e.message}")
             }
         }
     }
