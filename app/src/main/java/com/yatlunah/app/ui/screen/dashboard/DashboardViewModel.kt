@@ -48,23 +48,21 @@ class DashboardViewModel : ViewModel() {
     }
 
     fun startQuoteTimer() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) { // Jalankan di IO
             while (true) {
                 try {
                     val response = repository.getRandomQuote()
-                    if (response.isSuccessful) {
-                        val data = response.body()
-                        currentQuote = data?.teksQuote ?: "Tidak ada kutipan"
-                        currentSource = data?.sumber ?: ""
+                    withContext(Dispatchers.Main) { // Update ke UI thread
+                        if (response.isSuccessful) {
+                            val data = response.body()
+                            currentQuote = data?.teksQuote ?: "Tidak ada kutipan"
+                            currentSource = data?.sumber ?: ""
+                        }
                     }
-                    // Pindahkan delay ke sini agar tetap ada jeda meskipun sukses/gagal
-                    delay(300000L)
                 } catch (e: Exception) {
                     Log.e("DashboardVM", "Error fetchQuote: ${e.message}")
-                    // Jika error, tunggu sebentar (misal 30 detik) sebelum mencoba lagi
-                    // agar tidak terjadi looping error yang sangat cepat
-                    delay(30000L)
                 }
+                delay(60000L) // Delay 5 menit
             }
         }
     }

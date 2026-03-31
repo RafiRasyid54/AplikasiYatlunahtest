@@ -61,14 +61,6 @@ interface AuthApiService {
     ): Response<AuthResponse>
 
     // PERBAIKAN: Gunakan @Query agar sesuai dengan FastAPI
-    @POST("admin/quotes")
-    suspend fun addQuote(
-        @Query("teks") teks: String,
-        @Query("sumber") sumber: String
-    ): Response<AuthResponse>
-
-    @GET("quote/random") // Sesuaikan endpoint dengan backend
-    suspend fun getRandomQuote(): Response<QuotesHarian>
 
     @FormUrlEncoded
     @POST("user/update-role") // Sesuaikan dengan endpoint backend Anda
@@ -76,4 +68,28 @@ interface AuthApiService {
         @Field("id") userId: String,
         @Field("role") role: String
     ): Response<Void>
+
+    // Tambahkan ini di dalam AuthApiService.kt
+
+    // Untuk mengambil semua daftar quote
+
+    // Di AuthApiService.kt
+    @GET("quotes/random") // Pastikan tidak ada typo seperti "quotes" atau "/quote/random/"
+    suspend fun getRandomQuote(): Response<QuotesHarian>
+
+    @GET("admin/quotes")
+    suspend fun getAllQuotes(): Response<List<QuotesHarian>>
+    // Pakai @Body untuk mengirim objek JSON
+    @POST("admin/quotes")
+    suspend fun addQuote(@Body quote: QuotesHarian): Response<AuthResponse>
+
+    // Pakai @Path untuk ID di URL, dan @Body untuk data update
+    @PUT("admin/quotes/{id}")
+    suspend fun updateQuote(
+        @Path("id") id: Int,
+        @Body quote: QuotesHarian
+    ): Response<AuthResponse>
+
+    @DELETE("admin/quotes/{id}")
+    suspend fun deleteQuote(@Path("id") id: Int): Response<AuthResponse>
 }

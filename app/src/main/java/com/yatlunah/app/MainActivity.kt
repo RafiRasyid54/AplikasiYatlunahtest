@@ -20,6 +20,7 @@ import java.net.URLEncoder
 
 // --- IMPORT MODEL ---
 import com.yatlunah.app.data.model.Setoran
+import com.yatlunah.app.ui.screen.admin.AdminControlCenterScreen
 
 // --- IMPORT SCREEN UMUM ---
 import com.yatlunah.app.ui.screen.login.LoginScreen
@@ -31,6 +32,7 @@ import com.yatlunah.app.ui.screen.profile.ProfileScreen
 
 // --- IMPORT SCREEN GURU & ADMIN ---
 import com.yatlunah.app.ui.screen.admin.AdminDashboardScreen
+import com.yatlunah.app.ui.screen.admin.AdminQuoteScreen
 import com.yatlunah.app.ui.screen.guru.GuruDashboardScreen
 import com.yatlunah.app.ui.screen.guru.GuruPenilaianDetailScreen
 import com.yatlunah.app.ui.screen.guru.GuruSetoranQueueScreen
@@ -280,6 +282,35 @@ class MainActivity : ComponentActivity() {
                                 initialRole = r, // Sesuai dengan parameter baru
                                 onBack = { navController.popBackStack() }
                             )
+                        }
+                        // --- Di dalam NavHost MainActivity.kt ---
+
+                        composable("admin_control_center") {
+                            AdminControlCenterScreen(
+                                onNavigateToUserMgmt = { navController.navigate("user_management") },
+                                onNavigateToQuotes = { navController.navigate("admin_quotes") },
+                                onNavigateToLaporan = { /* navController.navigate("admin_laporan") */ },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable("dashboard_admin/{id}/{nama}") { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val rawName = backStackEntry.arguments?.getString("nama") ?: ""
+                            val nameAdmin = URLDecoder.decode(rawName, "UTF-8")
+
+                            AdminDashboardScreen(
+                                namaAdmin = nameAdmin,
+                                // ✅ Sekarang diarahkan ke Control Center, bukan langsung ke Management User
+                                onNavigateToUserMgmt = { navController.navigate("admin_control_center") },
+                                onNavigateToProfile = {
+                                    navController.navigate("profile/$id/$rawName/admin@yatlunah.com")
+                                }
+                            )
+                        }
+
+                        composable("admin_quotes") {
+                            AdminQuoteScreen(onBack = { navController.popBackStack() })
                         }
                     }
                 }

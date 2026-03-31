@@ -110,19 +110,31 @@ fun DashboardScreen(
 
             // --- 1. CARD QUOTES ---
             Card(
-                colors = CardDefaults.cardColors(containerColor = brightGreen),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF00D639)),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(4.dp)
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Quotes Hari Ini:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Quotes Hari Ini:", color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
+
+                    // Mengambil teks quote dari ViewModel
                     Text(
-                        "\"Sesungguhnya orang-orang yang bersabar akan diberi pahala tanpa batas.\"",
-                        color = Color.White, fontSize = 14.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        text = "\"${viewModel.currentQuote}\"",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                     )
-                    Text("(QS. Az-Zumar: 10)", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, modifier = Modifier.align(Alignment.End))
+
+                    // Mengambil sumber dari ViewModel
+                    if (viewModel.currentSource.isNotEmpty()) {
+                        Text(
+                            text = "- ${viewModel.currentSource}",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 12.sp,
+                            modifier = Modifier.align(Alignment.End)
+                        )
+                    }
                 }
             }
 

@@ -99,29 +99,34 @@ fun UserDetailScreen(
                     Text("Ubah status pengguna menjadi Siswa atau Guru", fontSize = 11.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Tombol Set Jadi Siswa (User)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // --- TOMBOL JADI SISWA ---
                         OutlinedButton(
                             onClick = {
-                                tempRole = "user"
+                                tempRole = "user" // Sesuaikan dengan string role di database-mu
                                 showDialog = true
                             },
                             modifier = Modifier.weight(1f),
+                            // Tombol ini HANYA aktif jika role saat ini adalah 'guru' atau 'admin'
                             enabled = selectedRole != "user",
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = brightGreen)
                         ) {
                             Text("Jadi Siswa")
                         }
 
-                        // ✅ PERBAIKAN: Tombol Set Jadi Guru
+                        // --- TOMBOL JADI GURU ---
                         Button(
                             onClick = {
                                 tempRole = "guru"
                                 showDialog = true
                             },
                             modifier = Modifier.weight(1f),
+                            // Tombol ini HANYA aktif jika role saat ini adalah 'user' atau 'admin'
                             enabled = selectedRole != "guru",
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)) // Warna Biru untuk Guru
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                         ) {
                             Text("Jadi Guru")
                         }

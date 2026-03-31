@@ -38,8 +38,20 @@ class AuthRepository {
         return apiService.getUsersByRole(role)
     }
 
+// DI DALAM AuthRepository.kt
+
     suspend fun addQuote(teks: String, sumber: String): Response<AuthResponse> {
-        return RetrofitClient.authApi.addQuote(teks, sumber)
+        // SALAH (seperti kodinganmu sekarang):
+        // return apiService.addQuote(teks, sumber)
+
+        // BENAR: Bungkus teks dan sumber ke dalam objek QuotesHarian dulu
+        val quoteObject = QuotesHarian(
+            teksQuote = teks,
+            sumber = sumber
+        )
+
+        // Kirim objek tersebut ke apiService
+        return apiService.addQuote(quoteObject)
     }
     // Di dalam class AuthRepository
     suspend fun getRandomQuote(): Response<QuotesHarian> {

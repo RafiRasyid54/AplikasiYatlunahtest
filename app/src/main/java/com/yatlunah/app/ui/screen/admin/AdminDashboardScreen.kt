@@ -49,10 +49,10 @@ fun AdminDashboardScreen(
                         Icon(Icons.Default.Home, null, tint = brightGreen, modifier = Modifier.size(28.dp))
                     }
                     IconButton(onClick = onNavigateToUserMgmt) {
-                        Icon(Icons.Default.Group, null, tint = Color.Gray)
+                        Icon(Icons.Default.List, null, tint = Color.Gray)
                     }
                     IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Default.Person, null, tint = Color.Gray)
+                        Icon(Icons.Default.Person,  null, tint = Color.Gray)
                     }
                 }
             }
