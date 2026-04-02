@@ -34,6 +34,7 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     onNavigateToJilid: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val brightGreen = Color(0xFF00D639)
@@ -70,7 +71,7 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = onNavigateToDashboard) {
                         Icon(Icons.Default.Home, null, tint = brightGreen, modifier = Modifier.size(30.dp))
                     }
                     IconButton(onClick = onNavigateToJilid) {

@@ -21,7 +21,9 @@ import androidx.compose.ui.text.input.VisualTransformation // ✅ WAJIB IMPORT I
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.tooling.preview.Preview
 import com.yatlunah.app.ui.screen.profile.ProfileViewModel
+import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -235,5 +237,20 @@ fun ProfileItem(icon: ImageVector, label: String, value: String) {
             Text(label, fontSize = 12.sp, color = Color.Gray)
             Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Preview(showBackground = true, name = "7. Profile Screen")
+@Composable
+fun PreviewProfile() {
+    AplikasiYatlunahtestTheme {
+        ProfileScreen(
+            userIdAsli = "u1",
+            namaUser = "Ahmad Yusuf",
+            emailUser = "ahmad@yatlunah.com",
+            onLogout = {},
+            onNavigateToHome = {},
+            onNavigateToJilid = {}
+        )
     }
 }

@@ -38,3 +38,9 @@ data class UserResponse(
     @SerializedName("email") val email: String,
     @SerializedName("role") val role: String
 )
+
+// Simpan di data/model/MessageResponse.kt
+data class MessageResponse(
+    val status: String,
+    val message: String? = null
+)

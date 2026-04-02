@@ -88,8 +88,10 @@ interface AuthApiService {
     suspend fun updateQuote(
         @Path("id") id: Int,
         @Body quote: QuotesHarian
-    ): Response<AuthResponse>
+    ): Response<MessageResponse> // Ganti ke MessageResponse
 
     @DELETE("admin/quotes/{id}")
-    suspend fun deleteQuote(@Path("id") id: Int): Response<AuthResponse>
+    suspend fun deleteQuote(
+        @Path("id") id: Int
+    ): Response<MessageResponse> // Ganti ke MessageResponse
 }

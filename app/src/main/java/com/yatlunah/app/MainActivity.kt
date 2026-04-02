@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -41,6 +42,8 @@ import com.yatlunah.app.ui.screen.admin.UserManagementMenuScreen
 import com.yatlunah.app.ui.screen.admin.UserListScreen
 import com.yatlunah.app.ui.screen.admin.UserDetailScreen
 
+import androidx.compose.ui.tooling.preview.Preview
+
 import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
 
 class MainActivity : ComponentActivity() {
@@ -73,6 +76,8 @@ class MainActivity : ComponentActivity() {
                                 onLoginSuccess = { userId, namaUser, emailUser, role ->
                                     val encodedId = URLEncoder.encode(userId, "UTF-8")
                                     val encodedName = URLEncoder.encode(namaUser, "UTF-8")
+
+                                    // RBAC Logic: Memastikan role dibaca dengan huruf kecil & tanpa spasi
                                     val cleanRole = role.lowercase().trim()
 
                                     when (cleanRole) {
@@ -86,7 +91,7 @@ class MainActivity : ComponentActivity() {
                                                 popUpTo("login") { inclusive = true }
                                             }
                                         }
-                                        else -> {
+                                        else -> { // Role peserta
                                             val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                             navController.navigate("dashboard_user/$encodedId/$encodedName/$encodedEmail") {
                                                 popUpTo("login") { inclusive = true }
@@ -178,19 +183,61 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // --- 4. USER FLOW ---
-                        composable("dashboard_user/{id}/{nama}/{email}") { backStackEntry ->
+                        composable(
+                            route = "dashboard_user/{id}/{nama}/{email}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val name = backStackEntry.arguments?.getString("nama") ?: ""
                             val email = backStackEntry.arguments?.getString("email") ?: ""
+
                             DashboardScreen(
-                                userId = id, namaUser = URLDecoder.decode(name, "UTF-8"),
-                                onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
-                                onNavigateToJilid = { navController.navigate("menu_belajar/$id/$name/$email") },
-                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email") }
+                                userId = id,
+                                namaUser = URLDecoder.decode(name, "UTF-8"),
+                                onLogout = {
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                },
+                                // --- LOGIKA ANTI WHITE SCREEN DI SINI ---
+                                onNavigateToDashboard = {
+                                    // Cek apakah kita sudah di dashboard, jika iya, jangan navigasi lagi
+                                    if (navController.currentBackStackEntry?.destination?.route != "dashboard_user/{id}/{nama}/{email}") {
+                                        navController.navigate("dashboard_user/$id/$name/$email") {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                },
+                                onNavigateToJilid = {
+                                    navController.navigate("menu_belajar/$id/$name/$email") {
+                                        launchSingleTop = true
+                                        // Penting: simpan state dashboard agar saat balik tidak reload/putih
+                                        popUpTo("dashboard_user/{id}/{nama}/{email}") {
+                                            saveState = true
+                                        }
+                                    }
+                                },
+                                onNavigateToProfile = {
+                                    navController.navigate("profile/$id/$name/$email") {
+                                        launchSingleTop = true
+                                    }
+                                }
                             )
                         }
 
-                        composable("menu_belajar/{id}/{nama}/{email}") { backStackEntry ->
+                        composable(
+                            route = "menu_belajar/{id}/{nama}/{email}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val name = backStackEntry.arguments?.getString("nama") ?: ""
                             val email = backStackEntry.arguments?.getString("email") ?: ""
@@ -326,6 +373,151 @@ class MainActivity : ComponentActivity() {
             "yatlunah_notif",
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
+        )
+    }
+}
+
+// --- KUMPULAN PREVIEW UNTUK SEMUA SCREEN ---
+// Letakkan ini di luar class MainActivity
+
+@Preview(showBackground = true, name = "1. Splash Screen")
+@Composable
+fun PreviewSplash() {
+    AplikasiYatlunahtestTheme {
+        SplashScreen(onTimeout = {})
+    }
+}
+
+@Preview(showBackground = true, name = "2. Login Screen")
+@Composable
+fun PreviewLogin() {
+    AplikasiYatlunahtestTheme {
+        LoginScreen(
+            onNavigateToRegister = {},
+            onLoginSuccess = { _, _, _, _ -> }
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "3. Register Screen")
+@Composable
+fun PreviewRegister() {
+    AplikasiYatlunahtestTheme {
+        RegisterScreen(onNavigateToLogin = {})
+    }
+}
+
+@Preview(showBackground = true, name = "4. Dashboard Peserta")
+@Composable
+fun PreviewDashboardUser() {
+    AplikasiYatlunahtestTheme {
+        DashboardScreen(
+            userId = "u1",
+            namaUser = "Ahmad Yusuf",
+            onLogout = {},
+            onNavigateToJilid = {},
+            onNavigateToProfile = {},
+            onNavigateToDashboard = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "5. Menu Belajar")
+@Composable
+fun PreviewMenuBelajar() {
+    AplikasiYatlunahtestTheme {
+        MenuBelajarScreen(
+            namaUser = "Ahmad Yusuf",
+            onNavigateToHome = {},
+            onNavigateToProfile = {},
+            onNavigateToMateri = {},
+            onNavigateToRiwayat = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "6. List Jilid")
+@Composable
+fun PreviewJilidList() {
+    AplikasiYatlunahtestTheme {
+        JilidListScreen(
+            onNavigateToDetail = {},
+            onNavigateToHome = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "7. Profile Screen")
+@Composable
+fun PreviewProfile() {
+    AplikasiYatlunahtestTheme {
+        ProfileScreen(
+            userIdAsli = "u1",
+            namaUser = "Ahmad Yusuf",
+            emailUser = "ahmad@yatlunah.com",
+            onLogout = {},
+            onNavigateToHome = {},
+            onNavigateToJilid = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "8. Dashboard Guru")
+@Composable
+fun PreviewGuruDashboard() {
+    AplikasiYatlunahtestTheme {
+        GuruDashboardScreen(
+            namaGuru = "Ustadz Mansur",
+            onNavigateToAntrean = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "9. Menu Jilid Guru")
+@Composable
+fun PreviewGuruJilidMenu() {
+    AplikasiYatlunahtestTheme {
+        GuruJilidMenuScreen(
+            onNavigateToHome = {},
+            onNavigateToProfile = {},
+            onNavigateToQueue = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "10. Dashboard Admin")
+@Composable
+fun PreviewAdminDashboard() {
+    AplikasiYatlunahtestTheme {
+        AdminDashboardScreen(
+            namaAdmin = "Super Admin",
+            onNavigateToUserMgmt = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "11. Admin Control Center")
+@Composable
+fun PreviewAdminControl() {
+    AplikasiYatlunahtestTheme {
+        AdminControlCenterScreen(
+            onNavigateToUserMgmt = {},
+            onNavigateToQuotes = {},
+            onNavigateToLaporan = {},
+            onBack = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "12. User Management Menu")
+@Composable
+fun PreviewUserMgmtMenu() {
+    AplikasiYatlunahtestTheme {
+        UserManagementMenuScreen(
+            onBack = {},
+            onNavigateToList = {}
         )
     }
 }
