@@ -35,6 +35,8 @@ fun DashboardScreen(
     onNavigateToJilid: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToBimbingan: () -> Unit,    // Tambahkan ini
+    onNavigateToInfoProgram: () -> Unit,  // Tambahkan ini
     viewModel: DashboardViewModel = viewModel()
 ) {
     val brightGreen = Color(0xFF00D639)
@@ -90,7 +92,8 @@ fun DashboardScreen(
                 .background(lightGrayBg)
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp) // Berikan jarak antar komponen
         ) {
             // --- HEADER ---
             Row(
@@ -204,25 +207,49 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 5. BIMBINGAN ONLINE (YANG TADI HILANG) ---
+            // --- Bagian 5. BIMBINGAN ---
             Text("Bimbingan", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
-            ) {
+            Card( /* ... */ ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Bimbingan Online Terdekat", fontWeight = FontWeight.Bold)
-                    Text("Besok, 16:00 WIB", color = Color.Gray, fontSize = 13.sp)
+                    Text("Daftar Bimbingan Guru", fontWeight = FontWeight.Bold)
+                    Text("Klik untuk mendaftar bimbingan online/offline", color = Color.Gray, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { /* Link Zoom */ },
+                        onClick = onNavigateToBimbingan, // Hubungkan ke navigasi bimbingan
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCC9)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Masuk Kelas Online", fontSize = 14.sp)
+                        Text("Daftar Sekarang", fontSize = 14.sp)
+                    }
+                }
+            }
+
+            Text("Informasi", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp) // Beri padding bawah agar tidak tertutup BottomBar
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Program Yatlunah", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Lihat daftar program belajar yang tersedia", color = Color.Gray, fontSize = 13.sp)
+                    }
+                    Button(
+                        onClick = onNavigateToInfoProgram, // Fungsi yang memicu navigasi ke screen program
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)), // Warna oranye agar beda dengan bimbingan
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Lihat", fontSize = 12.sp)
                     }
                 }
             }
