@@ -12,8 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
+// ✅ TAMBAHKAN IMPORT IKON BACK
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,44 +26,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yatlunah.app.R
 
+@OptIn(ExperimentalMaterial3Api::class) // ✅ Wajib ditambahkan untuk menggunakan TopAppBar
 @Composable
 fun GuruJilidMenuScreen(
-    onNavigateToHome: () -> Unit,
-    onNavigateToProfile: () -> Unit,
+    onBack: () -> Unit, // ✅ Parameter baru pengganti navigasi navbar
     onNavigateToQueue: (Int) -> Unit
 ) {
     val brightGreen = Color(0xFF00D639)
     val lightGrayBg = Color(0xFFF4F5F7)
 
     Scaffold(
-        bottomBar = {
-            BottomAppBar(
-                containerColor = Color.White,
-                modifier = Modifier.clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)),
-                tonalElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.Default.Home, null, tint = Color.Gray)
-                    }
-                    IconButton(onClick = { /* Aktif */ }) {
+        // ✅ TAMBAHKAN TOP APP BAR SEBAGAI TOMBOL KEMBALI
+        topBar = {
+            TopAppBar(
+                title = { Text("Validasi Setoran Jilid") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.LibraryBooks,
-                            null,
-                            tint = brightGreen,
-                            modifier = Modifier.size(30.dp)
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Kembali ke Pusat Kendali"
                         )
                     }
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Default.Person, null, tint = Color.Gray)
-                    }
                 }
-            }
+            )
         }
+        // BottomBar sudah dihapus sepenuhnya dari sini
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -72,29 +59,29 @@ fun GuruJilidMenuScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
         ) {
-            // --- CUSTOM HEADER DENGAN LOGO (SESUAI REQUEST) ---
+            // Header Custom dengan Logo
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp),
+                    .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        "Validasi Setoran",
-                        fontSize = 18.sp,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
                     Text(
                         "Pilih Jilid",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.Black
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Cek antrean suara santri:",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
                 }
-                // Logo Yatlunah di pojok kanan atas
+                // Logo Yatlunah
                 Image(
                     painter = painterResource(id = R.drawable.logo_yatlunah),
                     contentDescription = "Logo",
@@ -104,13 +91,7 @@ fun GuruJilidMenuScreen(
                 )
             }
 
-            Text(
-                "Pilih jilid untuk memeriksa antrean suara santri:",
-                color = Color.Gray,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // --- GRID JILID ---
             LazyVerticalGrid(

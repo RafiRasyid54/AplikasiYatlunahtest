@@ -5,7 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack // Gunakan AutoMirrored
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,12 +20,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DaftarBimbinganScreen(
-    userId: String,
-    totalProgress: Int,
+    userId: String,       // Hanya ID untuk Foreign Key di DB
+    totalProgress: Int,   // Diambil dari DB (SantriViewModel)
     onBack: () -> Unit,
     viewModel: BimbinganViewModel = viewModel(factory = BimbinganViewModel.Factory)
 ) {
-    // Pindahkan definisi isReady ke sini agar bisa diakses oleh semua komponen di bawahnya
+    // Logika Kelayakan (Hanya bisa daftar jika progres >= 80%)
     val isReady = totalProgress >= 80
 
     Scaffold(
@@ -34,7 +34,6 @@ fun DaftarBimbinganScreen(
                 title = { Text("Pendaftaran Bimbingan", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        // Perbaikan: Gunakan Icons.AutoMirrored sesuai saran compiler
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
@@ -49,25 +48,18 @@ fun DaftarBimbinganScreen(
                 .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp) // Memberikan jarak antar elemen agar tidak "jelek"
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Tingkatkan kualitas bacaan Anda dengan bimbingan langsung dari Guru Yatlunah.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                textAlign = TextAlign.Center
-            )
-
-            // Card Status Kelayakan [cite: 65, 73]
+            // Card Status Progres dari Database
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Analisis Progres Belajar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Progres Belajar Anda", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Capaian Saat Ini: $totalProgress%", fontSize = 14.sp)
+                    Text("Capaian Saat Ini: $totalProgress%", fontSize = 14.sp, color = Color.DarkGray)
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -76,7 +68,7 @@ fun DaftarBimbinganScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (isReady) "✓ Anda Layak Mengikuti Bimbingan" else "⚠ Selesaikan Materi Hingga 80%",
+                            text = if (isReady) "✓ Syarat Terpenuhi" else "⚠ Syarat: Minimal 80%",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             color = if (isReady) Color(0xFF2E7D32) else Color(0xFFC62828),
                             fontWeight = FontWeight.Bold,
@@ -86,9 +78,9 @@ fun DaftarBimbinganScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Tombol Daftar Online [cite: 80]
+            // Tombol Daftar (Hanya aktif jika progres cukup)
             Button(
                 onClick = { viewModel.submitPendaftaran(userId, "Online") },
                 modifier = Modifier.fillMaxWidth().height(55.dp),
@@ -98,7 +90,6 @@ fun DaftarBimbinganScreen(
                 Text("Daftar Bimbingan Online", fontWeight = FontWeight.Bold)
             }
 
-            // Tombol Daftar Tatap Muka [cite: 82]
             OutlinedButton(
                 onClick = { viewModel.submitPendaftaran(userId, "Tatap Muka") },
                 modifier = Modifier.fillMaxWidth().height(55.dp),
@@ -107,16 +98,11 @@ fun DaftarBimbinganScreen(
                 Text("Daftar Bimbingan Tatap Muka", fontWeight = FontWeight.Bold)
             }
 
-            // Status Feedback
+            // Feedback dari Server
             when (val state = viewModel.uiState) {
                 is BimbinganUiState.Loading -> CircularProgressIndicator(color = Color(0xFF00D639))
                 is BimbinganUiState.Success -> {
-                    Text(
-                        "Pendaftaran Berhasil! Guru akan segera memproses antrean Anda.",
-                        color = Color(0xFF2E7D32),
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Berhasil Terdaftar!", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
                 }
                 is BimbinganUiState.Error -> {
                     Text(state.message, color = Color.Red, textAlign = TextAlign.Center)

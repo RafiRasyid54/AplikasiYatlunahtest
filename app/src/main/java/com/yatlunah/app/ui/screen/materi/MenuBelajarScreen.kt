@@ -8,11 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,59 +22,40 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// Pastikan import R ini sesuai dengan nama package aplikasimu
 import com.yatlunah.app.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuBelajarScreen(
     namaUser: String,
-    onNavigateToHome: () -> Unit,
-    onNavigateToProfile: () -> Unit,
+    onBack: () -> Unit, // ✅ Menggantikan parameter navigasi navbar sebelumnya
     onNavigateToMateri: () -> Unit,
     onNavigateToRiwayat: () -> Unit
 ) {
     val brightGreen = Color(0xFF00D639)
+    val bgColor = Color(0xFFF4F5F7)
 
     Scaffold(
-        bottomBar = {
-            // ✅ NAVBAR DISEJAJARKAN 100% DENGAN DASHBOARD
-            BottomAppBar(
-                containerColor = Color.White,
-                modifier = Modifier.clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)),
-                tonalElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Tombol Kiri (Home) -> Pindah ke Dashboard
-                    IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.Default.Home, contentDescription = "Home", tint = Color.Gray)
+        // ✅ TAMBAHKAN TOMBOL BACK DI SINI
+        topBar = {
+            TopAppBar(
+                title = { Text("Menu Belajar") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-
-                    // Tombol Tengah (List/Belajar) -> Aktif menyala hijau
-                    IconButton(onClick = { /* Sudah di halaman ini */ }) {
-                        Icon(
-                            Icons.Default.List,
-                            contentDescription = "Menu Belajar",
-                            tint = brightGreen,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-
-                    // Tombol Kanan (Profil) -> Pindah ke Profil
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = Color.Gray)
-                    }
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = bgColor // Warna menyatu dengan background
+                )
+            )
         }
+        // Navbar (bottomBar) sudah dihapus sepenuhnya
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF4F5F7))
+                .background(bgColor)
                 .padding(innerPadding)
         ) {
 
@@ -84,10 +63,9 @@ fun MenuBelajarScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, top = 24.dp, end = 24.dp),
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Pastikan R.drawable.logo_yatlunah sudah ada di foldermu (sama seperti di Dashboard)
                 Image(
                     painter = painterResource(id = R.drawable.logo_yatlunah),
                     contentDescription = "Logo Yatlunah",
@@ -102,7 +80,7 @@ fun MenuBelajarScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // TEKS GREETING
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {

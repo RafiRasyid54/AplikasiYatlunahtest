@@ -64,10 +64,10 @@ fun UserManagementMenuScreen(
 
             UserTypeCard(
                 title = "Daftar Peserta (Siswa)",
-                count = "${counts["peserta"] ?: 0} Orang",
+                count = "${counts["santri"] ?: 0} Orang",
                 icon = Icons.Default.School,
                 color = Color(0xFF28A745),
-                onClick = { onNavigateToList("peserta") }
+                onClick = { onNavigateToList("santri") }
             )
 
             UserTypeCard(

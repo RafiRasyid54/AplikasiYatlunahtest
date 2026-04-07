@@ -34,4 +34,11 @@ object RetrofitClient {
 
     // 🔗 'instance' diarahkan ke authApi agar kode lama kamu tidak error
     val instance: AuthApiService get() = authApi
+
+
+    // ✅ TAMBAHKAN INI: 'bimbinganApi' (untuk fitur approval guru & antrean)
+    val bimbinganApi: BimbinganApiService by lazy {
+        retrofit.create(BimbinganApiService::class.java)
+    }
+
 }
