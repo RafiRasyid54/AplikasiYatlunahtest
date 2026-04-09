@@ -1,4 +1,4 @@
-package com.yatlunah.app.ui.screen.splash
+package com.yatlunah.app.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,7 +19,7 @@ import com.yatlunah.app.R
 fun SplashScreen(onTimeout: () -> Unit) {
     // Timer 5 detik sebelum pindah ke Login
     LaunchedEffect(Unit) { // Menggunakan Unit lebih standar untuk key yang cuma sekali jalan
-        delay(5000L)
+        delay(2000L)
         onTimeout()
     }
 

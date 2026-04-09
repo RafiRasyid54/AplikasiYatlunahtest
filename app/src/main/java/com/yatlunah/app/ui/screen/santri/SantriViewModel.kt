@@ -10,6 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SantriViewModel : ViewModel() {
     private val repository = AuthRepository()
@@ -79,22 +82,26 @@ class SantriViewModel : ViewModel() {
         }
     }
 
-    fun startQuoteTimer() {
+    fun fetchQuoteBerdasarkanHari() {
         viewModelScope.launch(Dispatchers.IO) {
-            while (true) {
-                try {
-                    val response = repository.getRandomQuote()
-                    withContext(Dispatchers.Main) {
-                        if (response.isSuccessful) {
-                            val data = response.body()
-                            currentQuote = data?.teksQuote ?: "Tidak ada kutipan"
-                            currentSource = data?.sumber ?: ""
-                        }
+            // PERBAIKAN LOCALE: Gunakan Locale.forLanguageTag atau constructor yang benar
+            val localeId = Locale("id", "ID")
+            val sdf = SimpleDateFormat("EEEE", localeId)
+            val hariIni = sdf.format(Date())
+
+            try {
+                val response = RetrofitClient.materiApi.getQuotesByHari(hariIni)
+
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val data = response.body()
+                        // PERBAIKAN REFERENCE: Sesuaikan dengan model (teksQuote & sumber)
+                        currentQuote = data?.teksQuote ?: "Tetap semangat belajar Al-Qur'an!"
+                        currentSource = data?.sumber ?: "Yatlunah"
                     }
-                } catch (e: Exception) {
-                    Log.e("DashboardVM", "Error fetchQuote: ${e.message}")
                 }
-                delay(60000L) // Refresh tiap 1 menit (sesuaikan kebutuhan)
+            } catch (e: Exception) {
+                Log.e("SantriVM", "Error: ${e.message}")
             }
         }
     }

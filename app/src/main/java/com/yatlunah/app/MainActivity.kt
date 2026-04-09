@@ -30,7 +30,7 @@ import com.yatlunah.app.ui.screen.login.LoginScreen
 import com.yatlunah.app.ui.screen.register.RegisterScreen
 import com.yatlunah.app.ui.screen.santri.SantriDashboardScreen
 import com.yatlunah.app.ui.screen.materi.*
-import com.yatlunah.app.ui.screen.splash.SplashScreen
+import com.yatlunah.app.ui.screen.SplashScreen
 import com.yatlunah.app.ui.screen.profile.ProfileScreen
 // ✅ IMPORT SANTRI CONTROL CENTER
 import com.yatlunah.app.ui.screen.santri.SantriControlCenterScreen
@@ -69,9 +69,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     NavHost(
                         navController = navController,
-                        startDestination = "splash"
+                        startDestination = "login"
                     ) {
-                        // --- 1. SPLASH & LOGIN ---
                         composable("splash") {
                             SplashScreen(onTimeout = {
                                 navController.navigate("login") {
@@ -558,3 +557,4 @@ class MainActivity : ComponentActivity() {
         )
     }
 }
+

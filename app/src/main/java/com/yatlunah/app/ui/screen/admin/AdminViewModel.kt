@@ -28,6 +28,24 @@ class AdminViewModel : ViewModel() {
         getAllQuotes()
     }
 
+    fun fetchQuotes() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = RetrofitClient.materiApi.getAllQuotes() // Pastikan endpoint ini ada di ApiService
+                if (response.isSuccessful) {
+                    _quotes.value = response.body() ?: emptyList()
+                } else {
+                    errorMessage = "Gagal mengambil data: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Koneksi Error: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
     fun getAllQuotes() {
         viewModelScope.launch {
             isLoading = true
@@ -49,48 +67,43 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun saveQuote(teks: String, sumber: String) {
+    // app/src/main/java/com/yatlunah/app/ui/screen/admin/AdminViewModel.kt
+
+    fun saveQuote(teks: String, sumber: String, hari: String) {
         viewModelScope.launch {
             isLoading = true
             try {
-                // SOLUSI: Buat objek QuotesHarian dulu
-                val newQuote = QuotesHarian(
-                    teksQuote = teks, // Pastikan nama properti sesuai data class kamu
-                    sumber = sumber
-                )
-
-                // Sekarang kirim SATU objek (newQuote), bukan dua String
-                val response = apiService.addQuote(newQuote)
-
+                val newQuote = QuotesHarian(teksQuote = teks, sumber = sumber, hari = hari)
+                val response = RetrofitClient.materiApi.tambahQuote(newQuote)
                 if (response.isSuccessful) {
                     isQuoteSavedSuccess = true
-                    getAllQuotes()
+                    fetchQuotes() // Refresh daftar
                 } else {
-                    errorMessage = "Gagal simpan: ${response.code()}"
+                    errorMessage = "Gagal menyimpan: ${response.code()}"
                 }
             } catch (e: Exception) {
-                errorMessage = e.message
+                errorMessage = e.localizedMessage
             } finally {
                 isLoading = false
             }
         }
     }
 
-    // CATATAN: Fungsi updateQuote dan deleteQuote akan ERROR
-    fun updateQuote(id: Int, teks: String, sumber: String) {
+    // FIX: Tambahkan fungsi updateQuote yang hilang
+    fun updateQuote(id: Int, teks: String, sumber: String, hari: String) {
         viewModelScope.launch {
             isLoading = true
             try {
-                val updatedData = QuotesHarian(id = id, teksQuote = teks, sumber = sumber)
-                // Gunakan 'id' untuk Path, dan 'updatedData' untuk Body
-                val response = apiService.updateQuote(id, updatedData)
-
+                val updatedQuote = QuotesHarian(id = id, teksQuote = teks, sumber = sumber, hari = hari)
+                val response = RetrofitClient.materiApi.updateQuote(id, updatedQuote)
                 if (response.isSuccessful) {
                     isQuoteSavedSuccess = true
-                    getAllQuotes()
+                    fetchQuotes() // Refresh daftar
+                } else {
+                    errorMessage = "Gagal memperbarui: ${response.code()}"
                 }
             } catch (e: Exception) {
-                errorMessage = e.message
+                errorMessage = e.localizedMessage
             } finally {
                 isLoading = false
             }

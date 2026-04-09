@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -23,6 +24,7 @@ import com.yatlunah.app.data.model.QuotesHarian
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,11 +94,11 @@ fun AdminQuoteScreen(
                 quote = selectedQuote,
                 isLoading = isLoading,
                 onDismiss = { showDialog = false },
-                onConfirm = { teks, sumber ->
+                onConfirm = { teks, sumber, hari -> // Tambahkan parameter hari
                     if (selectedQuote == null) {
-                        viewModel.saveQuote(teks, sumber)
+                        viewModel.saveQuote(teks, sumber, hari)
                     } else {
-                        viewModel.updateQuote(selectedQuote!!.id, teks, sumber)
+                        viewModel.updateQuote(selectedQuote!!.id, teks, sumber, hari)
                     }
                 }
             )
@@ -124,29 +126,61 @@ fun AdminQuoteScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuoteFormDialog(
     quote: QuotesHarian?,
     isLoading: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, String) -> Unit // Update signature
 ) {
-    // State lokal di dalam dialog agar tidak mengganggu state utama
     var textState by remember { mutableStateOf(quote?.teksQuote ?: "") }
     var sourceState by remember { mutableStateOf(quote?.sumber ?: "") }
 
+    // State untuk Dropdown Hari
+    var expanded by remember { mutableStateOf(false) }
+    val daftarHari = listOf("Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu")
+    var selectedHari by remember { mutableStateOf(quote?.hari ?: "Senin") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(text = if (quote == null) "Tambah Quote Baru" else "Edit Quote")
-        },
+        title = { Text(text = if (quote == null) "Tambah Quote Baru" else "Edit Quote") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Dropdown Pilihan Hari
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedHari,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Jadwal Hari") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        daftarHari.forEach { hari ->
+                            DropdownMenuItem(
+                                text = { Text(hari) },
+                                onClick = {
+                                    selectedHari = hari
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = textState,
                     onValueChange = { textState = it },
                     label = { Text("Isi Quote") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    modifier = Modifier.fillMaxWidth().height(100.dp),
                     enabled = !isLoading
                 )
                 OutlinedTextField(
@@ -160,7 +194,7 @@ fun QuoteFormDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(textState, sourceState) },
+                onClick = { onConfirm(textState, sourceState, selectedHari) },
                 enabled = !isLoading && textState.isNotBlank() && sourceState.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00D639))
             ) {
@@ -172,9 +206,7 @@ fun QuoteFormDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isLoading) {
-                Text("Batal")
-            }
+            TextButton(onClick = onDismiss, enabled = !isLoading) { Text("Batal") }
         }
     )
 }
@@ -191,6 +223,20 @@ fun QuoteItem(quote: QuotesHarian, onEdit: () -> Unit, onDelete: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                // Tampilkan label hari agar admin tahu jadwalnya
+                Surface(
+                    color = Color(0xFF00D639).copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = quote.hari ?: "Belum diatur",
+                        fontSize = 10.sp,
+                        color = Color(0xFF00D639),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(text = "\"${quote.teksQuote}\"", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Text(text = "- ${quote.sumber}", fontSize = 12.sp, color = Color.Gray)
             }

@@ -2,6 +2,7 @@ package com.yatlunah.app.data.remote
 
 import com.google.gson.annotations.SerializedName
 import com.yatlunah.app.data.model.JilidData
+import com.yatlunah.app.data.model.QuotesHarian
 import com.yatlunah.app.data.model.Setoran
 import retrofit2.Response
 import retrofit2.http.*
@@ -37,6 +38,30 @@ interface MateriApiService {
     suspend fun getRiwayatSetoran(
         @Path("user_id") userId: String
     ): Response<List<Setoran>>
+
+    // --- MANAJEMEN QUOTES ---
+
+    @POST("admin/quotes")
+    suspend fun tambahQuote(@Body quote: QuotesHarian): Response<Unit>
+
+    // ✅ UBAH: dari "materi/quotes" menjadi "admin/quotes"
+    @GET("admin/quotes")
+    suspend fun getAllQuotes(): Response<List<QuotesHarian>>
+
+    @GET("admin/quotes/filter")
+    suspend fun getQuotesByHari(
+        @Query("hari") hari: String
+    ): Response<QuotesHarian>
+
+    @PUT("admin/quotes/{id}")
+    suspend fun updateQuote(
+        @Path("id") id: Int,
+        @Body quote: QuotesHarian
+    ): Response<Unit>
+
+    // ✅ TAMBAHKAN: Jika butuh fitur delete di Android
+    @DELETE("admin/quotes/{id}")
+    suspend fun deleteQuote(@Path("id") id: Int): Response<Unit>
 }
 
 

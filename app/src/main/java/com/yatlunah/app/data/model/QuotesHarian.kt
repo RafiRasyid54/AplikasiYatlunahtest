@@ -12,6 +12,6 @@ data class QuotesHarian(
     @SerializedName("sumber")
     val sumber: String,
 
-    @SerializedName("tgl_tayang")
-    val tglTayang: String? = null
+    @SerializedName("hari")
+    val hari: String? = null
 )

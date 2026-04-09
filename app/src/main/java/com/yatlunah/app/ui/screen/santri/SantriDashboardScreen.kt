@@ -52,7 +52,7 @@ fun SantriDashboardScreen(
         if (userId.isNotEmpty()) {
             viewModel.fetchStats(userId)
             viewModel.fetchStatusBimbingan(userId)
-            viewModel.startQuoteTimer()
+            viewModel.fetchQuoteBerdasarkanHari()
         }
     }
 
