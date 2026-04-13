@@ -115,7 +115,7 @@ fun SantriDashboardScreen(
                 Image(
                     painter = painterResource(id = R.drawable.logo_yatlunah),
                     contentDescription = null,
-                    modifier = Modifier.size(50.dp).clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.size(70.dp).clip(RoundedCornerShape(20.dp))
                 )
             }
 
@@ -123,7 +123,7 @@ fun SantriDashboardScreen(
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF00D639)),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text("Quotes Hari Ini:", color = Color.White, fontWeight = FontWeight.Bold)
@@ -166,10 +166,10 @@ fun SantriDashboardScreen(
                 StatCard(modifier = Modifier.weight(1f), label = "Target", subLabel = "2/5 Hal", icon = "🏅")
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text("Lanjutkan Belajar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -197,7 +197,7 @@ fun SantriDashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // --- 4. BIMBINGAN ---
             Text("Bimbingan", fontSize = 16.sp, fontWeight = FontWeight.Bold)

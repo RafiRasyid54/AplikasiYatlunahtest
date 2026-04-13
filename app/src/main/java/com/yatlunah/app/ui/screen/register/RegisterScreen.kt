@@ -24,14 +24,22 @@ import com.yatlunah.app.R
 @Composable
 fun RegisterScreen(
     viewModel: RegisterViewModel = viewModel(),
-    onNavigateToLogin: () -> Unit = {}
+    onNavigateToLogin: () -> Unit = {},
+    onRegisterSucces: () -> Unit = {} // Pastikan typo 'Succes' ini sama dengan di MainActivity
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    // ✅ TAMBAHKAN STATE UNTUK SHOW/HIDE PASSWORD
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // ✅ LOGIKA NAVIGASI OTOMATIS
+    // LaunchedEffect akan berjalan setiap kali viewModel.registerStatus berubah
+    LaunchedEffect(viewModel.registerStatus) {
+        if (viewModel.registerStatus.contains("berhasil", ignoreCase = true)) {
+            // Kita panggil callback sukses yang akan memicu navigasi di MainActivity
+            onRegisterSucces()
+        }
+    }
 
     val brightGreen = Color(0xFF00D639)
     val lightGrayBg = Color(0xFFF4F5F7)
@@ -42,10 +50,9 @@ fun RegisterScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
+        // --- Bagian Logo (Tetap sama) ---
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.35f),
+            modifier = Modifier.fillMaxWidth().weight(0.35f),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -72,10 +79,10 @@ fun RegisterScreen(
                     text = "SIGN UP",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
+                // --- Form Input ---
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
@@ -83,54 +90,38 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
-                        // Username
                         TextField(
                             value = username,
                             onValueChange = { username = it },
-                            placeholder = { Text("Username", color = Color.Gray) },
+                            placeholder = { Text("Username") },
                             leadingIcon = { Icon(Icons.Default.Person, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.LightGray
-                            ),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
                             singleLine = true
                         )
-                        // Email
                         TextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("Email", color = Color.Gray) },
+                            placeholder = { Text("Email") },
                             leadingIcon = { Icon(Icons.Default.Email, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.LightGray
-                            ),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
                             singleLine = true
                         )
-                        // ✅ Password dengan Toggle Ikon Mata
                         TextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("Password", color = Color.Gray) },
+                            placeholder = { Text("Password") },
                             leadingIcon = { Icon(Icons.Default.Lock, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
-                            // Logika transformasi teks
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
+                                    Icon(imageVector = image, contentDescription = null)
                                 }
                             },
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent
-                            ),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
                             singleLine = true
                         )
                     }
@@ -138,22 +129,17 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Tombol Register
                 Button(
                     onClick = { viewModel.register(username, email, password) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp),
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
                     shape = RoundedCornerShape(25.dp)
                 ) {
-                    Text(
-                        text = "Sign Up",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Text(text = "Sign Up", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
 
+                // Status Message
                 if (viewModel.registerStatus.isNotEmpty()) {
                     Text(
                         text = viewModel.registerStatus,

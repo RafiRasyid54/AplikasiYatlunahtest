@@ -59,46 +59,6 @@ fun MenuBelajarScreen(
                 .padding(innerPadding)
         ) {
 
-            // LOGO YATLUNAH
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_yatlunah),
-                    contentDescription = "Logo Yatlunah",
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Yatlunah",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF8DC63F)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // TEKS GREETING
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                Text(
-                    text = "Pusat Pembelajaran",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.DarkGray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Ahlan wa sahlan, $namaUser!\nPilih menu di bawah untuk melanjutkan.",
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    lineHeight = 20.sp
-                )
-            }
-
             Spacer(modifier = Modifier.height(32.dp))
 
             // BUNGKUSAN KARTU MENU

@@ -50,18 +50,11 @@ fun AdminControlCenterScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Manajemen Sistem & Konten",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
 
             // 1. Tombol ke User Management (Ganti UserManagementMenuScreen)
             AdminHubCard(
                 title = "Manajemen Pengguna",
-                desc = "Kelola Siswa & Guru, ubah role atau pantau status.",
+                desc = "Kelola atau ubah role Siswa & Guru.",
                 icon = Icons.Default.People,
                 iconColor = Color(0xFF2196F3),
                 onClick = onNavigateToUserMgmt

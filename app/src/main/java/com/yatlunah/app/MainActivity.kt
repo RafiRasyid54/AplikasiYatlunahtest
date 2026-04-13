@@ -79,6 +79,18 @@ class MainActivity : ComponentActivity() {
                             })
                         }
 
+                        composable("register") {
+                            RegisterScreen(
+                                onNavigateToLogin = { navController.popBackStack() },
+                                onRegisterSucces = { // <--- Pastikan namanya sama dengan di RegisterScreen
+                                    navController.navigate("login") {
+                                        // Menghapus halaman register dari history agar tidak balik lagi kalau di-back
+                                        popUpTo("register") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
                         composable("login") {
                             LoginScreen(
                                 onNavigateToRegister = { navController.navigate("register") },
@@ -421,8 +433,6 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // --- 5. REGISTER & ADMIN FLOW ---
-                        composable("register") { RegisterScreen(onNavigateToLogin = { navController.popBackStack() }) }
-
                         composable("user_management") {
                             UserManagementMenuScreen(
                                 onBack = { navController.popBackStack() },

@@ -61,7 +61,7 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("SIGN IN", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text("LOGIN", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
@@ -130,7 +130,7 @@ fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
                         shape = RoundedCornerShape(25.dp)
                     ) {
-                        Text("Sign In", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Login", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
 

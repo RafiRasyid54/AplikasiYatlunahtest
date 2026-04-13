@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -95,8 +96,8 @@ fun UserDetailScreen(
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Manajemen Peran Pengguna", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Ubah status pengguna menjadi Siswa atau Guru", fontSize = 11.sp, color = Color.Gray)
+                    Text("Change Role", fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
+                    Text("Ubah status pengguna menjadi Siswa atau Guru", fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
@@ -104,17 +105,17 @@ fun UserDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // --- TOMBOL JADI SISWA ---
-                        OutlinedButton(
+                        Button(
                             onClick = {
-                                tempRole = "user" // Sesuaikan dengan string role di database-mu
+                                tempRole = "santri" // Sesuaikan dengan string role di database-mu
                                 showDialog = true
                             },
                             modifier = Modifier.weight(1f),
                             // Tombol ini HANYA aktif jika role saat ini adalah 'guru' atau 'admin'
-                            enabled = selectedRole != "user",
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = brightGreen)
+                            enabled = selectedRole != "santri",
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                         ) {
-                            Text("Jadi Siswa")
+                            Text("Jadi Santri")
                         }
 
                         // --- TOMBOL JADI GURU ---
