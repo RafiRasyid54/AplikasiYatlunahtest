@@ -30,12 +30,13 @@ fun AdminDashboardScreen(
     onNavigateToUserMgmt: () -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
+    // brightGreen tetap dipertahankan sebagai warna identitas brand
     val brightGreen = Color(0xFF00D639)
-    val lightGrayBg = Color(0xFFF4F5F7)
 
     Scaffold(
         bottomBar = {
             BottomAppBar(
+                // ✅ NAVBAR TETAP PUTIH: Di-hardcode ke Color.White sesuai permintaan
                 containerColor = Color.White,
                 modifier = Modifier.clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)),
                 tonalElevation = 8.dp
@@ -49,6 +50,7 @@ fun AdminDashboardScreen(
                         Icon(Icons.Default.Home, null, tint = brightGreen, modifier = Modifier.size(28.dp))
                     }
                     IconButton(onClick = onNavigateToUserMgmt) {
+                        // ✅ IKON TETAP ABU-ABU: Agar kontras di atas navbar putih
                         Icon(Icons.Default.List, null, tint = Color.Gray)
                     }
                     IconButton(onClick = onNavigateToProfile) {
@@ -61,20 +63,22 @@ fun AdminDashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(lightGrayBg)
+                // ✅ PERBAIKAN: Gunakan background dari tema
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // --- HEADER (Sama dengan Guru) ---
+            // --- HEADER ---
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Assalamualaikum !,", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Bold)
-                    Text("Admin $namaAdmin", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.Black)
+                    // ✅ PERBAIKAN: Gunakan onBackground untuk teks utama
+                    Text("Assalamualaikum !,", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
+                    Text("Admin $namaAdmin", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onBackground)
                 }
                 Image(
                     painter = painterResource(id = R.drawable.logo_yatlunah),
@@ -90,6 +94,7 @@ fun AdminDashboardScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    // Teks di sini tetap Color.White karena background-nya selalu brightGreen
                     Text("Overview Status Sistem", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text("Total User: 1,300 | Guru: 38 | Peserta: 1,262", color = Color.White.copy(0.9f), fontSize = 12.sp)
                 }
@@ -98,10 +103,12 @@ fun AdminDashboardScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // --- 2. LOG AKTIVITAS TERBARU ---
-            Text("Log Aktivitas Terbaru", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            // ✅ PERBAIKAN: Gunakan onBackground
+            Text("Log Aktivitas Terbaru", fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                // ✅ PERBAIKAN: Gunakan surface untuk Card
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -114,7 +121,7 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- 3. MENU KOTAK (Manajemen User, Materi, Laporan) ---
+            // --- 3. MENU KOTAK ---
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 AdminSmallMenuCard(Modifier.weight(1f), "Manajemen User", "Cek & Edit", Icons.Default.Group, onNavigateToUserMgmt)
                 AdminSmallMenuCard(Modifier.weight(1f), "Manajemen Materi", "Update PDF", Icons.Default.LibraryBooks)
@@ -124,10 +131,12 @@ fun AdminDashboardScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // --- 4. QUICK ACTION SECTION ---
-            Text("Kontrol Manajemen", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            // ✅ PERBAIKAN: Gunakan onBackground
+            Text("Kontrol Manajemen", fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                // ✅ PERBAIKAN: Gunakan surface untuk Card
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
             ) {
@@ -135,7 +144,8 @@ fun AdminDashboardScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.AdminPanelSettings, null, tint = brightGreen)
                         Spacer(Modifier.width(8.dp))
-                        Text("Akses Cepat Admin", fontWeight = FontWeight.Bold)
+                        // ✅ PERBAIKAN: Gunakan onSurface
+                        Text("Akses Cepat Admin", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                     }
                     Text("Kelola hak akses dan perizinan user dalam satu klik.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 8.dp))
 
@@ -146,7 +156,8 @@ fun AdminDashboardScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Buka Manajemen User 👥", fontSize = 14.sp)
+                        // Teks tetap Color.White karena tombol selalu hijau
+                        Text("Buka Manajemen User \uD83D\uDC65", color = Color.White, fontSize = 14.sp)
                     }
                 }
             }
@@ -160,7 +171,8 @@ fun AdminLogActivityRow(nama: String, aksi: String, waktu: String) {
         Box(modifier = Modifier.size(35.dp).background(Color.LightGray, CircleShape))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(nama, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            // ✅ PERBAIKAN: Gunakan onSurface untuk nama
+            Text(nama, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(aksi, fontSize = 12.sp, color = Color.Gray)
         }
         Text(waktu, fontSize = 10.sp, color = Color.LightGray)
@@ -171,14 +183,16 @@ fun AdminLogActivityRow(nama: String, aksi: String, waktu: String) {
 fun AdminSmallMenuCard(modifier: Modifier, label: String, sub: String, icon: ImageVector, onClick: () -> Unit = {}) {
     Card(
         modifier = modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        // ✅ PERBAIKAN: Gunakan surface untuk Card
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(icon, null, tint = Color(0xFFFFA000), modifier = Modifier.size(24.dp))
             Spacer(Modifier.height(4.dp))
-            Text(label, fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.Center)
+            // ✅ PERBAIKAN: Gunakan onSurface untuk label
+            Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.Center)
             Text(sub, fontSize = 9.sp, color = Color.Gray, textAlign = TextAlign.Center)
         }
     }

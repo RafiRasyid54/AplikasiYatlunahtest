@@ -75,12 +75,8 @@ fun RegisterScreen(
                     .padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "SIGN UP",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 20.dp)
-                )
+                Text("SIGNUP", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // --- Form Input ---
                 Card(
@@ -90,38 +86,68 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
+                        // 1. Kolom Username
                         TextField(
                             value = username,
                             onValueChange = { username = it },
-                            placeholder = { Text("Username") },
+                            placeholder = { Text("Username", color = Color.Gray) }, // Tambahkan warna placeholder agar konsisten
                             leadingIcon = { Icon(Icons.Default.Person, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                            colors = TextFieldDefaults.colors(
+                                focusedTextColor = Color.Black,   // Wajib: Teks ketikan warna hitam
+                                unfocusedTextColor = Color.Black, // Wajib: Teks ketikan warna hitam
+                                cursorColor = Color.Black,        // Kursor warna hitam
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.LightGray,   // Garis bawah saat diklik
+                                unfocusedIndicatorColor = Color.LightGray  // Garis bawah saat diam
+                            ),
                             singleLine = true
                         )
+
+                        // 2. Kolom Email
                         TextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("Email") },
+                            placeholder = { Text("Email", color = Color.Gray) },
                             leadingIcon = { Icon(Icons.Default.Email, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                            colors = TextFieldDefaults.colors(
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                cursorColor = Color.Black,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.LightGray,
+                                unfocusedIndicatorColor = Color.LightGray
+                            ),
                             singleLine = true
                         )
+
+                        // 3. Kolom Password
                         TextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("Password") },
+                            placeholder = { Text("Password", color = Color.Gray) },
                             leadingIcon = { Icon(Icons.Default.Lock, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(imageVector = image, contentDescription = null)
+                                    // Tambahkan tint abu-abu agar ikon mata tidak terlalu mencolok
+                                    Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
                                 }
                             },
-                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent),
+                            colors = TextFieldDefaults.colors(
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                cursorColor = Color.Black,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.LightGray,   // Perbaikan: Samakan dengan yang atas
+                                unfocusedIndicatorColor = Color.LightGray  // Perbaikan: Samakan dengan yang atas
+                            ),
                             singleLine = true
                         )
                     }

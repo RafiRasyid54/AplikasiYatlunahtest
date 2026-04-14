@@ -40,7 +40,7 @@ fun LoginScreen(
     val inputIconColor = Color(0xFF2B2B43)
 
     Column(
-        modifier = Modifier.fillMaxSize().background(Color.White)
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
         // --- AREA LOGO ---
         Box(modifier = Modifier.fillMaxWidth().weight(0.4f), contentAlignment = Alignment.Center) {
@@ -55,17 +55,17 @@ fun LoginScreen(
         Surface(
             modifier = Modifier.fillMaxWidth().weight(0.6f)
                 .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)),
-            color = lightGrayBg
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("LOGIN", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text("LOGIN", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(2.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -77,6 +77,9 @@ fun LoginScreen(
                             leadingIcon = { Icon(Icons.Default.Email, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = TextFieldDefaults.colors(
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,   // ✅ Teks saat diklik berwarna hitam
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface, // ✅ Teks saat tidak diklik berwarna hitam
+                                cursorColor = Color.Black,        // ✅ Kursor ketik berwarna hitam
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.LightGray,
@@ -98,10 +101,13 @@ fun LoginScreen(
                                 }
                             },
                             colors = TextFieldDefaults.colors(
+                                focusedTextColor = Color.Black,   // ✅ Teks inputan berwarna hitam
+                                unfocusedTextColor = Color.Black, // ✅ Teks inputan berwarna hitam
+                                cursorColor = Color.Black,        // ✅ Kursor ketik berwarna hitam
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
+                                focusedIndicatorColor = Color.LightGray, // 💡 Perbaikan: Sebelumnya ini Transparent, jadi garis bawahnya hilang
+                                unfocusedIndicatorColor = Color.LightGray // 💡 Samakan dengan email agar UI konsisten
                             ),
                             singleLine = true
                         )
