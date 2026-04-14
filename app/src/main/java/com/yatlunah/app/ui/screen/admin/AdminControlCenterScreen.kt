@@ -1,13 +1,14 @@
 package com.yatlunah.app.ui.screen.admin
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.People
@@ -27,103 +28,97 @@ fun AdminControlCenterScreen(
     onNavigateToUserMgmt: () -> Unit,
     onNavigateToQuotes: () -> Unit,
     onNavigateToLaporan: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit // ✅ Restored to match MainActivity
 ) {
+    val isDark = isSystemInDarkTheme()
+
+    val bgColor      = if (isDark) Color(0xFF0F0F0F) else Color(0xFFF4F5F7)
+    val surfaceColor = if (isDark) Color(0xFF1A1A1A) else Color.White
+    val titleColor   = if (isDark) Color(0xFFF0F0F0) else Color(0xFF111111)
+
     Scaffold(
+        containerColor = bgColor,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Pusat Kendali Admin", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Pusat Kendali Admin",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = titleColor
+                    )
+                },
+                // ✅ Navigation Icon restored for the Back Button
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = titleColor
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = surfaceColor
+                )
             )
-        },
-        containerColor = Color(0xFFF4F5F7)
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
         ) {
+            Spacer(Modifier.height(16.dp))
 
-            // 1. Tombol ke User Management (Ganti UserManagementMenuScreen)
-            AdminHubCard(
-                title = "Manajemen Pengguna",
-                desc = "Kelola atau ubah role Siswa & Guru.",
-                icon = Icons.Default.People,
-                iconColor = Color(0xFF2196F3),
-                onClick = onNavigateToUserMgmt
-            )
+            AdminHubCard("Manajemen Pengguna", "Kelola role Siswa & Guru.", Icons.Default.People, Color(0xFF2563EB), surfaceColor, isDark, onNavigateToUserMgmt)
+            Spacer(Modifier.height(12.dp))
+            AdminHubCard("Kutipan Harian", "Atur quotes inspiratif.", Icons.Default.FormatQuote, Color(0xFF16A34A), surfaceColor, isDark, onNavigateToQuotes)
+            Spacer(Modifier.height(12.dp))
+            AdminHubCard("Laporan Aktivitas", "Statistik & progres santri.", Icons.Default.Assessment, Color(0xFFD97706), surfaceColor, isDark, onNavigateToLaporan)
 
-            // 2. Tombol ke AdminQuoteScreen
-            AdminHubCard(
-                title = "Kutipan Harian (Quotes)",
-                desc = "Tambah, hapus, atau atur quotes inspiratif harian.",
-                icon = Icons.Default.FormatQuote,
-                iconColor = Color(0xFF4CAF50),
-                onClick = onNavigateToQuotes
-            )
-
-            // 3. Tombol ke Laporan (Screen Laporan kedepannya)
-            AdminHubCard(
-                title = "Laporan Aktivitas",
-                desc = "Lihat statistik setoran dan grafik progres santri.",
-                icon = Icons.Default.Assessment,
-                iconColor = Color(0xFFFF9800),
-                onClick = onNavigateToLaporan
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Informasi: Perubahan role pengguna akan langsung berdampak pada hak akses aplikasi mereka.",
-                fontSize = 11.sp,
-                color = Color.Gray,
-                lineHeight = 16.sp
-            )
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-fun AdminHubCard(
+private fun AdminHubCard(
     title: String,
     desc: String,
     icon: ImageVector,
-    iconColor: Color,
+    accentColor: Color,
+    surfaceColor: Color,
+    isDark: Boolean,
     onClick: () -> Unit
 ) {
+    val iconBg = if (isDark) accentColor.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.1f)
+
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = surfaceColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(iconColor.copy(alpha = 0.1f), CircleShape),
+                modifier = Modifier.size(48.dp).background(iconBg, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(26.dp))
+                Icon(icon, null, tint = accentColor, modifier = Modifier.size(24.dp))
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
+            Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                Text(text = desc, fontSize = 12.sp, color = Color.Gray, lineHeight = 16.sp)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = if (isDark) Color.White else Color.Black)
+                Text(desc, fontSize = 12.sp, color = Color.Gray)
             }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray)
         }
     }
 }

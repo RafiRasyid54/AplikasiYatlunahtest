@@ -305,22 +305,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // ✅ TAMBAHAN: Control Center khusus Santri
-                        // Di dalam NavHost { ... }
-                        composable(
-                            route = "santri_control_center/{id}/{nama}/{email}",
-                            arguments = listOf(
-                                navArgument("id") { type = NavType.StringType },
-                                navArgument("nama") { type = NavType.StringType },
-                                navArgument("email") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            // Gunakan URLDecoder untuk menjaga karakter spesial di email/nama
-                            val id = backStackEntry.arguments?.getString("id") ?: ""
-                            val name = backStackEntry.arguments?.getString("nama") ?: ""
-                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                        // Di dalam NavHost MainActivity.kt
+                        composable("santri_control_center/{id}/{nama}/{email}") {
+                            val id = it.arguments?.getString("id") ?: ""
+                            val name = it.arguments?.getString("nama") ?: ""
+                            val email = it.arguments?.getString("email") ?: ""
 
-                            // ✅ PASTIKAN SEMUA PARAMETER DI BAWAH INI SESUAI DENGAN DEFINISI DI SCREEN
                             SantriControlCenterScreen(
                                 userId = id,
                                 namaUser = name,
@@ -328,8 +318,8 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 onNavigateToMateri = { navController.navigate("menu_belajar/$id/$name/$email") },
                                 onNavigateToRiwayat = { navController.navigate("riwayat_setoran/$id") },
-                                // ✅ TAMBAHKAN NAVIGASI KE PROFILE
                                 onNavigateToProfile = {
+                                    // Gunakan launchSingleTop agar tidak membuat instansi profile baru terus menerus
                                     navController.navigate("profile/$id/$name/$email") {
                                         launchSingleTop = true
                                     }
@@ -366,48 +356,38 @@ class MainActivity : ComponentActivity() {
                                 navArgument("email") { type = NavType.StringType }
                             )
                         ) { backStackEntry ->
-                            // 1. Ambil data asli dari arguments
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val rawName = backStackEntry.arguments?.getString("nama") ?: ""
                             val rawEmail = backStackEntry.arguments?.getString("email") ?: ""
 
-                            // 2. Decode agar karakter spesial (seperti @ atau spasi) kembali normal
                             val decodedName = URLDecoder.decode(rawName, "UTF-8")
                             val decodedEmail = URLDecoder.decode(rawEmail, "UTF-8")
 
                             ProfileScreen(
                                 userIdAsli = id,
-                                namaUser = decodedName, // ✅ Gunakan variabel yang sudah di-decode
+                                namaUser = decodedName,
                                 emailUser = decodedEmail,
                                 onLogout = {
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
+                                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
                                 },
                                 onNavigateToHome = {
-                                    // ✅ Kembali ke Dashboard & bersihkan tumpukan di atasnya
-                                    navController.navigate("dashboard_santri/$id/$rawName/$rawEmail") {
-                                        popUpTo("dashboard_santri/{id}/{nama}/{email}") {
-                                            inclusive = true
+                                    // ✅ CEK ROLE SEBELUM PULANG
+                                    if (decodedEmail.contains("admin")) {
+                                        navController.navigate("dashboard_admin/$id/$rawName") {
+                                            popUpTo("dashboard_admin/{id}/{nama}") { inclusive = true }
                                         }
-                                        launchSingleTop = true
+                                    } else {
+                                        navController.navigate("dashboard_santri/$id/$rawName/$rawEmail") {
+                                            popUpTo("dashboard_santri/{id}/{nama}/{email}") { inclusive = true }
+                                        }
                                     }
                                 },
                                 onNavigateToJilid = {
-                                    // ✅ Cek role berdasarkan email yang sudah di-decode
+                                    // Logika Control Center (sudah benar di kode Anda)
                                     when {
-                                        decodedEmail.contains("admin") -> {
-                                            navController.navigate("admin_control_center") { launchSingleTop = true }
-                                        }
-                                        decodedEmail.contains("guru") -> {
-                                            navController.navigate("guru_control_center/$id") { launchSingleTop = true }
-                                        }
-                                        else -> {
-                                            // ✅ Arahkan santri ke Control Center-nya
-                                            navController.navigate("santri_control_center/$id/$rawName/$rawEmail") {
-                                                launchSingleTop = true
-                                            }
-                                        }
+                                        decodedEmail.contains("admin") -> { navController.navigate("admin_control_center") }
+                                        decodedEmail.contains("guru") -> { navController.navigate("guru_control_center/$id") }
+                                        else -> { navController.navigate("santri_control_center/$id/$rawName/$rawEmail") }
                                     }
                                 }
                             )
@@ -477,6 +457,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("admin_control_center") {
+                            // Ambil data admin dari context rute jika diperlukan (misal untuk warna brand)
                             AdminControlCenterScreen(
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },

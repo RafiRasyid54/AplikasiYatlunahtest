@@ -1,9 +1,12 @@
 package com.yatlunah.app.ui.screen.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -17,13 +20,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation // ✅ WAJIB IMPORT INI
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.tooling.preview.Preview
-import com.yatlunah.app.ui.screen.profile.ProfileViewModel
 import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
+
+// --- Color Tokens remain the same ---
+private object ProfileColors {
+    val darkBg       = Color(0xFF0F0F0F)
+    val darkSurface  = Color(0xFF1A1A1A)
+    val darkSurface2 = Color(0xFF242424)
+    val darkBorder   = Color(0x12FFFFFF)
+    val darkText1    = Color(0xFFF0F0F0)
+    val darkText2    = Color(0xFFA0A0A0)
+    val darkText3    = Color(0xFF606060)
+    val darkGreen    = Color(0xFF22C55E)
+    val darkGreenBg  = Color(0xFF14532D)
+    val darkGreenTint= Color(0x1422C55E)
+    val darkRedTint  = Color(0x14DC2626)
+    val darkRedText  = Color(0xFFFCA5A5)
+
+    val lightBg      = Color(0xFFF4F5F7)
+    val lightSurface = Color.White
+    val lightBorder  = Color(0xFFE5E5E5)
+    val lightText2   = Color(0xFF888888)
+    val lightText3   = Color(0xFFAAAAAA)
+    val lightGreen   = Color(0xFF00C132)
+    val lightGreenBg = Color(0xFF00D639)
+    val lightGreenTint = Color(0xFFF0FDF4)
+    val lightRedTint = Color(0xFFFFF5F5)
+    val lightRedText = Color(0xFFDC2626)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,21 +64,22 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToJilid: () -> Unit
 ) {
-    val brightGreen = Color(0xFF00D639)
-    val lightGrayBg = Color(0xFFF4F5F7)
+    val isDark = isSystemInDarkTheme()
+    val bgColor       = if (isDark) ProfileColors.darkBg       else ProfileColors.lightBg
+    val surfaceColor  = if (isDark) ProfileColors.darkSurface  else ProfileColors.lightSurface
+    val surface2Color = if (isDark) ProfileColors.darkSurface2 else ProfileColors.lightBg
+    val borderColor   = if (isDark) ProfileColors.darkBorder   else ProfileColors.lightBorder
+    val text1         = if (isDark) ProfileColors.darkText1    else Color(0xFF111111)
+    val text2         = if (isDark) ProfileColors.darkText2    else ProfileColors.lightText2
+    val text3         = if (isDark) ProfileColors.darkText3    else ProfileColors.lightText3
+    val brandGreen    = if (isDark) ProfileColors.darkGreen    else ProfileColors.lightGreen
+    val greenTint     = if (isDark) ProfileColors.darkGreenTint else ProfileColors.lightGreenTint
+    val headerBg      = if (isDark) ProfileColors.darkGreenBg  else ProfileColors.lightGreenBg
 
-    // States Lokal
     var isEditingName by remember { mutableStateOf(false) }
     var showPasswordSheet by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf(namaUser) }
-    var oldPassword by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
 
-    // ✅ STATE BARU UNTUK KONTROL MATA
-    var oldPasswordVisible by remember { mutableStateOf(false) }
-    var newPasswordVisible by remember { mutableStateOf(false) }
-
-    // State dari ViewModel
     val currentName by viewModel.userName.collectAsState()
     val currentEmail by viewModel.userEmail.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -61,46 +90,65 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        containerColor = bgColor,
         bottomBar = {
-            BottomAppBar(
-                containerColor = Color.White,
-                modifier = Modifier.clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)),
-                tonalElevation = 8.dp
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    IconButton(onClick = onNavigateToHome) { Icon(Icons.Default.Home, null, tint = Color.Gray) }
-                    IconButton(onClick = onNavigateToJilid) { Icon(Icons.AutoMirrored.Filled.List, null, tint = Color.Gray) }
-                    IconButton(onClick = {}) { Icon(Icons.Default.Person, null, tint = brightGreen, modifier = Modifier.size(30.dp)) }
-                }
-            }
+            // ✅ FIX: Passing the emailUser parameter here
+            ProfileBottomBar(
+                isDark = isDark,
+                brandGreen = brandGreen,
+                emailUser = emailUser,
+                onNavigateToHome = onNavigateToHome,
+                onNavigateToJilid = onNavigateToJilid
+            )
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize().background(lightGrayBg).padding(innerPadding),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(bgColor)
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --- HEADER ---
-            Box(modifier = Modifier.fillMaxWidth().height(180.dp).background(brightGreen), contentAlignment = Alignment.Center) {
+            // Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(170.dp)
+                    .background(headerBg),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(modifier = Modifier.size(90.dp), shape = CircleShape, color = Color.White) {
-                        Icon(Icons.Default.Person, null, modifier = Modifier.padding(20.dp), tint = brightGreen)
+                    Surface(
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        color = if (isDark) ProfileColors.darkGreenTint else Color.White
+                    ) {
+                        Icon(Icons.Default.Person, null, modifier = Modifier.padding(18.dp), tint = brandGreen)
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Peserta Yatlunah", color = Color.White, fontSize = 14.sp)
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        // ✅ Dynamic Role Label
+                        text = if (emailUser.contains("admin")) "Administrator" else if (emailUser.contains("guru")) "Guru Pembimbing" else "Peserta Yatlunah",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // --- INFO CARD ---
+            // Profile Detail Card
             Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(if (isDark) 0.dp else 1.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Detail Profil", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
+                Column(Modifier.padding(18.dp)) {
+                    Text("Detail Profil", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = text1)
+                    Spacer(Modifier.height(14.dp))
 
                     if (isEditingName) {
                         OutlinedTextField(
@@ -109,148 +157,112 @@ fun ProfileScreen(
                             label = { Text("Nama Baru") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brightGreen)
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = brandGreen, focusedLabelColor = brandGreen)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = {
-                                viewModel.updateProfileName(userIdAsli, tempName) { isEditingName = false }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
-                            enabled = !isLoading
-                        ) {
-                            if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                            else Text("Simpan Nama")
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { isEditingName = false }, modifier = Modifier.weight(1f)) { Text("Batal", color = text2) }
+                            Button(
+                                onClick = { viewModel.updateProfileName(userIdAsli, tempName) { isEditingName = false } },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
+                            ) {
+                                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White)
+                                else Text("Simpan", color = Color.White)
+                            }
                         }
                     } else {
-                        ProfileItem(Icons.Default.Badge, "Nama", currentName)
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = Color.LightGray)
+                        ProfileInfoRow(Icons.Default.Badge, surface2Color, brandGreen, "Nama", currentName, text3, text1, borderColor, true)
+                        ProfileInfoRow(Icons.Default.Email, surface2Color, if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB), "Email", currentEmail, text3, text1, borderColor, false)
 
-                        ProfileItem(Icons.Default.Email, "Email", currentEmail)
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { isEditingName = true }) {
-                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
-                                Text(" Ubah Nama", color = brightGreen)
+                        Spacer(Modifier.height(14.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { isEditingName = true }, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Ubah Nama", fontSize = 12.sp)
                             }
-                            TextButton(onClick = { showPasswordSheet = true }) {
-                                Icon(Icons.Default.Lock, null, modifier = Modifier.size(16.dp))
-                                Text(" Ganti Password", color = Color.Gray)
+                            OutlinedButton(onClick = { showPasswordSheet = true }, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.Lock, null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Password", fontSize = 12.sp)
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
-            Button(
+            OutlinedButton(
                 onClick = onLogout,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                elevation = ButtonDefaults.buttonElevation(2.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (isDark) ProfileColors.darkRedTint else ProfileColors.lightRedTint,
+                    contentColor = if (isDark) ProfileColors.darkRedText else ProfileColors.lightRedText
+                )
             ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.Red)
-                Text(" Keluar Akun", color = Color.Red, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        // --- PASSWORD SHEET ---
-        if (showPasswordSheet) {
-            ModalBottomSheet(onDismissRequest = {
-                showPasswordSheet = false
-                oldPasswordVisible = false // Reset mata saat tutup
-                newPasswordVisible = false
-            }, containerColor = Color.White) {
-                Column(modifier = Modifier.padding(24.dp).padding(bottom = 32.dp)) {
-                    Text("Ganti Kata Sandi", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // --- PASSWORD LAMA ---
-                    OutlinedTextField(
-                        value = oldPassword,
-                        onValueChange = { oldPassword = it },
-                        label = { Text("Password Lama") },
-                        modifier = Modifier.fillMaxWidth(),
-                        // ✅ PERUBAHAN DISINI: Cek variabel visible
-                        visualTransformation = if (oldPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            val image = if (oldPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                            IconButton(onClick = { oldPasswordVisible = !oldPasswordVisible }) {
-                                Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
-                            }
-                        },
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // --- PASSWORD BARU ---
-                    OutlinedTextField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        label = { Text("Password Baru") },
-                        modifier = Modifier.fillMaxWidth(),
-                        // ✅ PERUBAHAN DISINI: Cek variabel visible
-                        visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            val image = if (newPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                            IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
-                                Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
-                            }
-                        },
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {
-                            viewModel.updatePassword(userIdAsli, oldPassword, newPassword) {
-                                showPasswordSheet = false
-                                oldPassword = ""
-                                newPassword = ""
-                                oldPasswordVisible = false
-                                newPasswordVisible = false
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
-                        enabled = !isLoading && newPassword.isNotEmpty() && oldPassword.isNotEmpty()
-                    ) {
-                        if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                        else Text("Update Password")
-                    }
-                }
+                Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Keluar Akun", fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
 @Composable
-fun ProfileItem(icon: ImageVector, label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(16.dp))
+private fun ProfileInfoRow(icon: ImageVector, iconBg: Color, iconTint: Color, label: String, value: String, labelColor: Color, valueColor: Color, dividerColor: Color, showDivider: Boolean) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(36.dp).background(iconBg, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(14.dp))
         Column {
-            Text(label, fontSize = 12.sp, color = Color.Gray)
-            Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(label, fontSize = 11.sp, color = labelColor)
+            Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
         }
     }
+    if (showDivider) HorizontalDivider(color = dividerColor, thickness = 0.5.dp)
 }
 
-@Preview(showBackground = true, name = "7. Profile Screen")
 @Composable
-fun PreviewProfile() {
-    AplikasiYatlunahtestTheme {
-        ProfileScreen(
-            userIdAsli = "u1",
-            namaUser = "Ahmad Yusuf",
-            emailUser = "ahmad@yatlunah.com",
-            onLogout = {},
-            onNavigateToHome = {},
-            onNavigateToJilid = {}
+private fun ProfileBottomBar(
+    isDark: Boolean,
+    brandGreen: Color,
+    emailUser: String, // ✅ Added parameter
+    onNavigateToHome: () -> Unit,
+    onNavigateToJilid: () -> Unit
+) {
+    val inactiveColor = if (isDark) Color(0xFF505050) else Color.Gray
+    val barBg = if (isDark) Color(0xFF161616) else Color.White
+
+    NavigationBar(
+        containerColor = barBg,
+        tonalElevation = if (isDark) 0.dp else 8.dp,
+        modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+    ) {
+        NavigationBarItem(
+            selected = false,
+            onClick = onNavigateToHome,
+            icon = { Icon(Icons.Default.Home, null) },
+            colors = NavigationBarItemDefaults.colors(unselectedIconColor = inactiveColor, indicatorColor = Color.Transparent)
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = onNavigateToJilid,
+            icon = {
+                // ✅ Dynamic Icon based on role
+                val icon = if (emailUser.contains("admin")) Icons.AutoMirrored.Filled.List else Icons.Default.MenuBook
+                Icon(icon, null)
+            },
+            colors = NavigationBarItemDefaults.colors(unselectedIconColor = inactiveColor, indicatorColor = Color.Transparent)
+        )
+        NavigationBarItem(
+            selected = true,
+            onClick = {},
+            icon = { Icon(Icons.Default.Person, null, modifier = Modifier.size(28.dp)) },
+            colors = NavigationBarItemDefaults.colors(selectedIconColor = brandGreen, indicatorColor = if (isDark) Color(0x1422C55E) else Color(0xFFE8FFF0))
         )
     }
 }

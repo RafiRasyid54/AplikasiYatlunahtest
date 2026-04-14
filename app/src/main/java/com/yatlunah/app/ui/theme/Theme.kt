@@ -4,22 +4,34 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+// rafirasyid54/aplikasiyatlunahtest/.../ui/theme/Theme.kt
+
+// rafirasyid54/aplikasiyatlunahtest/.../ui/theme/Theme.kt
 
 private val DarkColorScheme = darkColorScheme(
     primary = BrightGreen,
+    onPrimary = Color.Black, // Teks hitam di atas tombol hijau agar terbaca
     background = DarkBackground,
     surface = DarkSurface,
     onBackground = TextDark,
-    onSurface = TextDark
+    onSurface = TextDark,
+    // Slot yang sering digunakan untuk NavigationBar/TopAppBar
+    secondaryContainer = BrightGreen,
+    onSecondaryContainer = Color.Black
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = BrightGreen,
+    onPrimary = Color.White,
     background = LightBackground,
     surface = LightSurface,
     onBackground = TextLight,
-    onSurface = TextLight
+    onSurface = TextLight,
+    secondaryContainer = Color.White,
+    onSecondaryContainer = Color.Black
 )
 
 @Composable
