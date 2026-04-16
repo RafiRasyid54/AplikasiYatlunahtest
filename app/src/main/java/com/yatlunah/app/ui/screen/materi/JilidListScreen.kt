@@ -1,10 +1,11 @@
 package com.yatlunah.app.ui.screen.materi
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,15 +15,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-// ✅ Pastikan kedua import ini ada
 import com.yatlunah.app.data.model.JilidData
 import com.yatlunah.app.ui.screen.materi.JilidViewModel
+
+// ─────────────────────────────────────────────
+// Token Warna Konsisten
+// ─────────────────────────────────────────────
+private object JilidColors {
+    val brandGreen     = Color(0xFF00D639)
+    val darkBackground = Color(0xFF0F0F0F)
+    val darkSurface    = Color(0xFF1A1A1A)
+    val lightBackground = Color(0xFFF4F5F7)
+    val textSecondary  = Color(0xFFA0A0A0)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,38 +42,73 @@ fun JilidListScreen(
     onNavigateToDetail: (Int) -> Unit,
     onNavigateToHome: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val bgColor = if (isDark) JilidColors.darkBackground else JilidColors.lightBackground
+    val surfaceColor = if (isDark) JilidColors.darkSurface else Color.White
+    val textColor = if (isDark) Color.White else Color(0xFF111111)
+    val brandGreen = JilidColors.brandGreen
+
     val listJilid by viewModel.jilidList.collectAsState()
 
     Scaffold(
+        containerColor = bgColor,
         topBar = {
-            TopAppBar(
-                title = { Text("Daftar Jilid Iqra", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-            )
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            "Daftar Jilid Iqra",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = textColor
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateToHome) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = textColor
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = surfaceColor
+                    )
+                )
+                HorizontalDivider(
+                    color = if (isDark) Color(0xFF2E2E2E) else Color(0xFFE5E5E5),
+                    thickness = 0.5.dp
+                )
+            }
         }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF4F5F7)),
-            contentPadding = PaddingValues(16.dp),
+                .padding(innerPadding),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                Text(
+                    text = "MATERI PEMBELAJARAN",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) JilidColors.textSecondary else Color.Gray,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+
             items(listJilid) { jilid ->
                 JilidCard(
                     jilid = jilid,
-                    onClick = {
-                        // ✅ KLIK KARTU: Selalu arahkan ke halaman baca PDF (baik online maupun offline)
-                        onNavigateToDetail(jilid.nomorJilid)
-                    },
+                    surfaceColor = surfaceColor,
+                    brandGreen = brandGreen,
+                    isDark = isDark,
+                    onClick = { onNavigateToDetail(jilid.nomorJilid) },
                     onDownloadClick = {
-                        // ✅ KLIK IKON DOWNLOAD: Unduh file jika belum ada di HP
                         if (!jilid.isDownloaded) {
                             viewModel.downloadJilid(jilid)
                         }
@@ -73,58 +119,83 @@ fun JilidListScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JilidCard(
     jilid: JilidData,
+    surfaceColor: Color,
+    brandGreen: Color,
+    isDark: Boolean,
     onClick: () -> Unit,
-    onDownloadClick: () -> Unit // ✅ Tambahkan parameter khusus untuk tombol download
+    onDownloadClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }, // Kartu diklik untuk BUKA materi
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        colors = CardDefaults.cardColors(containerColor = surfaceColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 2.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                modifier = Modifier.size(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF00D639).copy(alpha = 0.1f)
+            // Nomor Jilid Box
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(brandGreen.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("${jilid.nomorJilid}", color = Color(0xFF00D639), fontWeight = FontWeight.Bold)
-                }
+                Text(
+                    text = "${jilid.nomorJilid}",
+                    color = brandGreen,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(jilid.judulJilid, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Ukuran: ${jilid.fileSize}", color = Color.Gray, fontSize = 12.sp)
+                Text(
+                    text = jilid.judulJilid,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = if (isDark) Color.White else Color.Black
+                )
+                Text(
+                    text = "Ukuran: ${jilid.fileSize}",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
 
-                // Progress Bar saat sedang mendownload
+                // Download Progress
                 if (jilid.downloadProgress > 0f && jilid.downloadProgress < 1f) {
                     Spacer(modifier = Modifier.height(8.dp))
                     LinearProgressIndicator(
                         progress = { jilid.downloadProgress },
-                        modifier = Modifier.fillMaxWidth().height(4.dp),
-                        color = Color(0xFF00D639),
-                        trackColor = Color(0xFFEEEEEE)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(CircleShape),
+                        color = brandGreen,
+                        trackColor = if (isDark) Color(0xFF2E2E2E) else Color(0xFFEEEEEE)
                     )
                 }
             }
 
-            // ✅ Ikon sekarang menjadi IconButton agar bisa diklik secara terpisah dari kartunya
-            IconButton(onClick = onDownloadClick) {
+            // Download/Success Icon
+            IconButton(
+                onClick = onDownloadClick,
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = if (jilid.isDownloaded) brandGreen else Color.Gray
+                )
+            ) {
                 Icon(
                     imageVector = if (jilid.isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
-                    contentDescription = if (jilid.isDownloaded) "Sudah Diunduh" else "Unduh Jilid",
-                    tint = if (jilid.isDownloaded) Color(0xFF00D639) else Color.LightGray
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

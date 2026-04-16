@@ -28,7 +28,7 @@ import com.yatlunah.app.R
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     onNavigateToRegister: () -> Unit,
-    // ✅ PERBAIKAN 1: Tambahkan satu String lagi untuk 'role'
+    // ✅ Parameter 4 (role) sudah sesuai dengan MainActivity
     onLoginSuccess: (String, String, String, String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
@@ -36,7 +36,6 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val brightGreen = Color(0xFF00D639)
-    val lightGrayBg = Color(0xFFF4F5F7)
     val inputIconColor = Color(0xFF2B2B43)
 
     Column(
@@ -61,7 +60,12 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("LOGIN", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                Text(
+                    text = "LOGIN",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
@@ -72,14 +76,16 @@ fun LoginScreen(
                 ) {
                     Column {
                         TextField(
-                            value = email, onValueChange = { email = it },
+                            value = email,
+                            onValueChange = { email = it },
                             placeholder = { Text("Email", color = Color.Gray) },
                             leadingIcon = { Icon(Icons.Default.Email, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = MaterialTheme.colorScheme.onSurface,   // ✅ Teks saat diklik berwarna hitam
-                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface, // ✅ Teks saat tidak diklik berwarna hitam
-                                cursorColor = Color.Black,        // ✅ Kursor ketik berwarna hitam
+                                // ✅ Menggunakan warna dinamis MaterialTheme agar aman di Dark/Light Mode
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = brightGreen, // 💡 Kursor diubah jadi hijau agar lebih cantik
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.LightGray,
@@ -89,7 +95,8 @@ fun LoginScreen(
                         )
 
                         TextField(
-                            value = password, onValueChange = { password = it },
+                            value = password,
+                            onValueChange = { password = it },
                             placeholder = { Text("Password", color = Color.Gray) },
                             leadingIcon = { Icon(Icons.Default.Lock, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
@@ -101,13 +108,14 @@ fun LoginScreen(
                                 }
                             },
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,   // ✅ Teks inputan berwarna hitam
-                                unfocusedTextColor = Color.Black, // ✅ Teks inputan berwarna hitam
-                                cursorColor = Color.Black,        // ✅ Kursor ketik berwarna hitam
+                                // ✅ Menghapus hardcode Color.Black agar tidak hilang di Dark Mode
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = brightGreen, // 💡 Kursor hijau
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.LightGray, // 💡 Perbaikan: Sebelumnya ini Transparent, jadi garis bawahnya hilang
-                                unfocusedIndicatorColor = Color.LightGray // 💡 Samakan dengan email agar UI konsisten
+                                focusedIndicatorColor = Color.Transparent, // 💡 Baris bawah dihilangkan karena ini item terakhir di dalam Card
+                                unfocusedIndicatorColor = Color.Transparent
                             ),
                             singleLine = true
                         )
@@ -115,7 +123,12 @@ fun LoginScreen(
                 }
 
                 if (viewModel.loginStatus.isNotEmpty() && !viewModel.loginStatus.contains("Selamat")) {
-                    Text(viewModel.loginStatus, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text(
+                        text = viewModel.loginStatus,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -126,7 +139,7 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             if (email.isNotEmpty() && password.isNotEmpty()) {
-                                // ✅ PERBAIKAN 2: Sesuaikan pemanggilan ViewModel agar menyertakan 'role'
+                                // ✅ Memanggil fungsi dengan 4 parameter dengan tepat
                                 viewModel.login(email, password) { id, nama, emailRes, role ->
                                     onLoginSuccess(id, nama, emailRes, role)
                                 }

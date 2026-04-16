@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,14 +20,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
 
-// --- Color Tokens remain the same ---
 private object ProfileColors {
     val darkBg       = Color(0xFF0F0F0F)
     val darkSurface  = Color(0xFF1A1A1A)
@@ -59,6 +56,7 @@ fun ProfileScreen(
     userIdAsli: String,
     namaUser: String,
     emailUser: String,
+    role: String,
     viewModel: ProfileViewModel = viewModel(),
     onLogout: () -> Unit,
     onNavigateToHome: () -> Unit,
@@ -73,11 +71,9 @@ fun ProfileScreen(
     val text2         = if (isDark) ProfileColors.darkText2    else ProfileColors.lightText2
     val text3         = if (isDark) ProfileColors.darkText3    else ProfileColors.lightText3
     val brandGreen    = if (isDark) ProfileColors.darkGreen    else ProfileColors.lightGreen
-    val greenTint     = if (isDark) ProfileColors.darkGreenTint else ProfileColors.lightGreenTint
     val headerBg      = if (isDark) ProfileColors.darkGreenBg  else ProfileColors.lightGreenBg
 
     var isEditingName by remember { mutableStateOf(false) }
-    var showPasswordSheet by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf(namaUser) }
 
     val currentName by viewModel.userName.collectAsState()
@@ -89,14 +85,19 @@ fun ProfileScreen(
         tempName = namaUser
     }
 
+    val roleLabel = when (role.lowercase()) {
+        "admin" -> "Administrator"
+        "guru"  -> "Guru Pembimbing"
+        else    -> "Peserta Yatlunah"
+    }
+
     Scaffold(
         containerColor = bgColor,
         bottomBar = {
-            // ✅ FIX: Passing the emailUser parameter here
             ProfileBottomBar(
                 isDark = isDark,
                 brandGreen = brandGreen,
-                emailUser = emailUser,
+                role = role,
                 onNavigateToHome = onNavigateToHome,
                 onNavigateToJilid = onNavigateToJilid
             )
@@ -110,12 +111,8 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(170.dp)
-                    .background(headerBg),
+                modifier = Modifier.fillMaxWidth().height(170.dp).background(headerBg),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -127,19 +124,12 @@ fun ProfileScreen(
                         Icon(Icons.Default.Person, null, modifier = Modifier.padding(18.dp), tint = brandGreen)
                     }
                     Spacer(Modifier.height(10.dp))
-                    Text(
-                        // ✅ Dynamic Role Label
-                        text = if (emailUser.contains("admin")) "Administrator" else if (emailUser.contains("guru")) "Guru Pembimbing" else "Peserta Yatlunah",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text(text = roleLabel, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             Spacer(Modifier.height(20.dp))
 
-            // Profile Detail Card
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 colors = CardDefaults.cardColors(containerColor = surfaceColor),
@@ -172,6 +162,7 @@ fun ProfileScreen(
                             }
                         }
                     } else {
+                        // ✅ SEKARANG SUDAH ADA REFERENSINYA
                         ProfileInfoRow(Icons.Default.Badge, surface2Color, brandGreen, "Nama", currentName, text3, text1, borderColor, true)
                         ProfileInfoRow(Icons.Default.Email, surface2Color, if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB), "Email", currentEmail, text3, text1, borderColor, false)
 
@@ -182,7 +173,7 @@ fun ProfileScreen(
                                 Spacer(Modifier.width(4.dp))
                                 Text("Ubah Nama", fontSize = 12.sp)
                             }
-                            OutlinedButton(onClick = { showPasswordSheet = true }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { /* Password Logic */ }, modifier = Modifier.weight(1f)) {
                                 Icon(Icons.Default.Lock, null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Password", fontSize = 12.sp)
@@ -211,8 +202,19 @@ fun ProfileScreen(
     }
 }
 
+// ✅ FUNGSI COMPOSABLE PEMBANTU (Wajib ada di dalam file yang sama)
 @Composable
-private fun ProfileInfoRow(icon: ImageVector, iconBg: Color, iconTint: Color, label: String, value: String, labelColor: Color, valueColor: Color, dividerColor: Color, showDivider: Boolean) {
+private fun ProfileInfoRow(
+    icon: ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    label: String,
+    value: String,
+    labelColor: Color,
+    valueColor: Color,
+    dividerColor: Color,
+    showDivider: Boolean
+) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(36.dp).background(iconBg, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
@@ -230,7 +232,7 @@ private fun ProfileInfoRow(icon: ImageVector, iconBg: Color, iconTint: Color, la
 private fun ProfileBottomBar(
     isDark: Boolean,
     brandGreen: Color,
-    emailUser: String, // ✅ Added parameter
+    role: String,
     onNavigateToHome: () -> Unit,
     onNavigateToJilid: () -> Unit
 ) {
@@ -252,8 +254,11 @@ private fun ProfileBottomBar(
             selected = false,
             onClick = onNavigateToJilid,
             icon = {
-                // ✅ Dynamic Icon based on role
-                val icon = if (emailUser.contains("admin")) Icons.AutoMirrored.Filled.List else Icons.Default.MenuBook
+                val icon = when(role.lowercase()) {
+                    "admin" -> Icons.AutoMirrored.Filled.List
+                    "guru"  -> Icons.Default.FactCheck // ✅ Ikon untuk guru
+                    else    -> Icons.AutoMirrored.Filled.MenuBook // ✅ Menggunakan AutoMirrored
+                }
                 Icon(icon, null)
             },
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = inactiveColor, indicatorColor = Color.Transparent)

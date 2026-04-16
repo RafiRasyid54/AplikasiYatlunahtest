@@ -25,32 +25,29 @@ import com.yatlunah.app.R
 fun RegisterScreen(
     viewModel: RegisterViewModel = viewModel(),
     onNavigateToLogin: () -> Unit = {},
-    onRegisterSucces: () -> Unit = {} // Pastikan typo 'Succes' ini sama dengan di MainActivity
+    onRegisterSucces: () -> Unit = {} // Typo dipertahankan sesuai MainActivity
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // ✅ LOGIKA NAVIGASI OTOMATIS
-    // LaunchedEffect akan berjalan setiap kali viewModel.registerStatus berubah
+    // LOGIKA NAVIGASI OTOMATIS
     LaunchedEffect(viewModel.registerStatus) {
         if (viewModel.registerStatus.contains("berhasil", ignoreCase = true)) {
-            // Kita panggil callback sukses yang akan memicu navigasi di MainActivity
             onRegisterSucces()
         }
     }
 
     val brightGreen = Color(0xFF00D639)
-    val lightGrayBg = Color(0xFFF4F5F7)
     val inputIconColor = Color(0xFF2B2B43)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background) // ✅ Dukungan Dark Mode
     ) {
-        // --- Bagian Logo (Tetap sama) ---
+        // --- Bagian Logo ---
         Box(
             modifier = Modifier.fillMaxWidth().weight(0.35f),
             contentAlignment = Alignment.Center
@@ -67,7 +64,7 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .weight(0.65f)
                 .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)),
-            color = lightGrayBg
+            color = MaterialTheme.colorScheme.background // ✅ Disamakan dengan LoginScreen
         ) {
             Column(
                 modifier = Modifier
@@ -75,12 +72,17 @@ fun RegisterScreen(
                     .padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("SIGNUP", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(
+                    text = "SIGNUP",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground // ✅ Dukungan Dark Mode
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // --- Form Input ---
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), // ✅ Dukungan Dark Mode
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(2.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -90,17 +92,17 @@ fun RegisterScreen(
                         TextField(
                             value = username,
                             onValueChange = { username = it },
-                            placeholder = { Text("Username", color = Color.Gray) }, // Tambahkan warna placeholder agar konsisten
+                            placeholder = { Text("Username", color = Color.Gray) },
                             leadingIcon = { Icon(Icons.Default.Person, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,   // Wajib: Teks ketikan warna hitam
-                                unfocusedTextColor = Color.Black, // Wajib: Teks ketikan warna hitam
-                                cursorColor = Color.Black,        // Kursor warna hitam
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,   // ✅ Teks menyesuaikan tema
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface, // ✅ Teks menyesuaikan tema
+                                cursorColor = brightGreen,        // ✅ Kursor selaras dengan brand
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.LightGray,   // Garis bawah saat diklik
-                                unfocusedIndicatorColor = Color.LightGray  // Garis bawah saat diam
+                                focusedIndicatorColor = Color.LightGray,
+                                unfocusedIndicatorColor = Color.LightGray
                             ),
                             singleLine = true
                         )
@@ -113,9 +115,9 @@ fun RegisterScreen(
                             leadingIcon = { Icon(Icons.Default.Email, null, tint = inputIconColor) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
-                                cursorColor = Color.Black,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = brightGreen,
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.LightGray,
@@ -135,18 +137,17 @@ fun RegisterScreen(
                             trailingIcon = {
                                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    // Tambahkan tint abu-abu agar ikon mata tidak terlalu mencolok
                                     Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
                                 }
                             },
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
-                                cursorColor = Color.Black,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = brightGreen,
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.LightGray,   // Perbaikan: Samakan dengan yang atas
-                                unfocusedIndicatorColor = Color.LightGray  // Perbaikan: Samakan dengan yang atas
+                                focusedIndicatorColor = Color.Transparent,   // ✅ Garis bawah dihilangkan karena item terakhir
+                                unfocusedIndicatorColor = Color.Transparent  // ✅ Garis bawah dihilangkan
                             ),
                             singleLine = true
                         )
@@ -162,14 +163,15 @@ fun RegisterScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
                     shape = RoundedCornerShape(25.dp)
                 ) {
-                    Text(text = "Sign Up", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Sign Up", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 // Status Message
                 if (viewModel.registerStatus.isNotEmpty()) {
                     Text(
                         text = viewModel.registerStatus,
-                        color = if (viewModel.registerStatus.contains("berhasil")) Color(0xFF2E7D32) else Color.Red,
+                        // ✅ Menggunakan brightGreen alih-alih warna gelap agar tetap terlihat di mode gelap
+                        color = if (viewModel.registerStatus.contains("berhasil", ignoreCase = true)) brightGreen else Color.Red,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 8.dp)
                     )

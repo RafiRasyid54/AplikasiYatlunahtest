@@ -1,27 +1,20 @@
 package com.yatlunah.app.ui.screen.materi
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,35 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,8 +32,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yatlunah.app.data.manager.AudioUploadManager
 import com.yatlunah.app.data.remote.RetrofitClient
@@ -77,6 +47,12 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
+private object ViewerColors {
+    val brandGreen     = Color(0xFF00D639)
+    val darkBackground = Color(0xFF0F0F0F)
+    val darkSurface    = Color(0xFF1A1A1A)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PdfJilidViewerScreen(
@@ -85,9 +61,15 @@ fun PdfJilidViewerScreen(
     viewModel: JilidViewModel = viewModel(),
     onBack: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uploadManager = remember { AudioUploadManager() }
+
+    val bgColor = if (isDark) ViewerColors.darkBackground else Color(0xFF1A1A1A)
+    val surfaceColor = if (isDark) ViewerColors.darkSurface else Color.White
+    val textColor = if (isDark) Color.White else Color.Black
+    val brandGreen = ViewerColors.brandGreen
 
     // --- STATES ---
     var pdfRenderer by remember { mutableStateOf<PdfRenderer?>(null) }
@@ -99,7 +81,6 @@ fun PdfJilidViewerScreen(
     val audioProgress by viewModel.audioProgress.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
 
-    // State Rekaman
     var isRecordMode by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
     var hasRecorded by remember { mutableStateOf(false) }
@@ -107,28 +88,39 @@ fun PdfJilidViewerScreen(
     var audioFile by remember { mutableStateOf<File?>(null) }
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
 
-    // --- 1. LOGIC DOWNLOAD & INISIALISASI PDF RENDERER ---
+    // --- PERMISSION ---
+    var hasMicPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasMicPermission = it }
+
+    // --- PDF ENGINE ---
     LaunchedEffect(jilidId, listJilid) {
         if (listJilid.isEmpty()) return@LaunchedEffect
         withContext(Dispatchers.IO) {
             try {
+                isLoading = true
                 val currentJilid = listJilid.find { it.nomorJilid == jilidId }
-                val pdfUrl = currentJilid?.pdfUrl ?: throw Exception("URL PDF kosong")
+                val pdfUrl = currentJilid?.pdfUrl
+                if (pdfUrl.isNullOrEmpty()) {
+                    errorMessage = "URL tidak ditemukan"
+                    isLoading = false
+                    return@withContext
+                }
 
-                val tempFile = File(context.cacheDir, "temp_jilid_$jilidId.pdf")
-                if (!tempFile.exists()) {
+                val tempFile = File(context.cacheDir, "jilid_$jilidId.pdf")
+                if (!tempFile.exists() || tempFile.length() == 0L) {
                     java.net.URL(pdfUrl).openStream().use { input ->
                         FileOutputStream(tempFile).use { output -> input.copyTo(output) }
                     }
                 }
-
                 val fd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
-                val renderer = PdfRenderer(fd)
-                pdfRenderer = renderer
-                pageCount = renderer.pageCount
+                pdfRenderer = PdfRenderer(fd)
+                pageCount = pdfRenderer?.pageCount ?: 0
+                errorMessage = ""
                 isLoading = false
-            } catch (e: Exception) {
-                errorMessage = e.localizedMessage ?: "Gagal memuat PDF"
+            } catch (ex: Exception) {
+                errorMessage = ex.localizedMessage ?: "Error memuat file"
                 isLoading = false
             }
         }
@@ -136,231 +128,174 @@ fun PdfJilidViewerScreen(
 
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    // --- 2. LOGIC TRIGGER AUDIO PER HALAMAN ---
+    // Reset Audio saat pindah halaman
     LaunchedEffect(pagerState.currentPage) {
         if (!isLoading && pageCount > 0) {
-            val page = pagerState.currentPage + 1
-            viewModel.prepareAudioForPage(context, jilidId, page)
-
-            // Reset state rekaman saat pindah halaman
-            isRecordMode = false
-            isRecording = false
-            hasRecorded = false
-            audioFile = null
+            viewModel.prepareAudioForPage(context, jilidId, pagerState.currentPage + 1)
         }
     }
 
-    // Dispose renderer saat keluar dari screen agar memori bebas
     DisposableEffect(Unit) {
         onDispose {
             pdfRenderer?.close()
             viewModel.stopAudio()
+            mediaRecorder?.apply { try { stop(); release() } catch (e: Exception) {} }
         }
     }
 
     Scaffold(
+        containerColor = bgColor,
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
-                    Column {
-                        Text("Jilid $jilidId", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text("Halaman ${pagerState.currentPage + 1}", fontSize = 12.sp, color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Jilid $jilidId", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Halaman ${pagerState.currentPage + 1} / $pageCount", fontSize = 11.sp, color = Color.LightGray)
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = { onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White) } },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Black.copy(alpha = 0.7f))
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFF2B2B2B))) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFF00D639))
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = brandGreen)
             } else if (errorMessage.isNotEmpty()) {
-                Text(errorMessage, color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                Text(errorMessage, color = Color.White, modifier = Modifier.align(Alignment.Center), textAlign = TextAlign.Center)
             } else {
-                // --- 3. PAGER DENGAN RENDER ON-DEMAND (ANTI-ANR) ---
                 HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { pageIndex ->
                     var pageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-
-                    // Render hanya halaman yang sedang ditampilkan
                     LaunchedEffect(pageIndex) {
                         withContext(Dispatchers.IO) {
                             pdfRenderer?.let { renderer ->
-                                val page = renderer.openPage(pageIndex)
-                                // Ukuran asli agar ringan di RAM
-                                val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-                                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                                pageBitmap = bitmap
-                                page.close()
+                                synchronized(renderer) {
+                                    val page = renderer.openPage(pageIndex)
+                                    val bitmap = createBitmap((page.width * 1.5).toInt(), (page.height * 1.5).toInt(), Bitmap.Config.ARGB_8888)
+                                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                                    pageBitmap = bitmap
+                                    page.close()
+                                }
                             }
                         }
                     }
-
-                    Card(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                        pageBitmap?.let {
-                            Image(
-                                bitmap = it.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } ?: Box(Modifier.fillMaxSize()) {
-                            CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Card(colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.9f)) {
+                            pageBitmap?.let { Image(it.asImageBitmap(), null, modifier = Modifier.fillMaxSize()) }
                         }
                     }
                 }
 
-                // --- 4. PANEL KONTROL (AUDIO & RECORD) ---
-                Box(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 30.dp), contentAlignment = Alignment.Center) {
+                // --- PANEL KONTROL ---
+                Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp)) {
 
-                    // MODE NORMAL (AUDIO USTADZ)
+                    // Mode Playback (Audio Ustadz)
                     AnimatedVisibility(visible = !isRecordMode, enter = fadeIn(), exit = fadeOut()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             if (audioProgress > 0f) {
                                 LinearProgressIndicator(
                                     progress = { audioProgress },
-                                    modifier = Modifier.width(150.dp).height(4.dp).clip(CircleShape).padding(bottom = 8.dp),
-                                    color = Color(0xFF00D639)
+                                    modifier = Modifier.width(120.dp).height(4.dp).clip(CircleShape),
+                                    color = brandGreen,
+                                    trackColor = Color.White.copy(alpha = 0.2f)
                                 )
+                                Spacer(Modifier.height(16.dp))
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                                FloatingActionButton(onClick = { viewModel.toggleAudio() }, containerColor = Color(0xFF00D639)) {
-                                    Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = Color.White)
+                            Row(modifier = Modifier.background(Color.Black.copy(0.7f), CircleShape).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                FloatingActionButton(
+                                    onClick = {
+                                        // Pastikan audio di-stop dulu jika sedang record, baru nyalakan playback
+                                        viewModel.toggleAudio()
+                                    },
+                                    containerColor = brandGreen,
+                                    shape = CircleShape
+                                ) {
+                                    // Ikon berubah reaktif mengikuti State di ViewModel
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
                                 }
-                                FloatingActionButton(onClick = { isRecordMode = true; viewModel.stopAudio() }, containerColor = Color(0xFF007BFF)) {
+                                Spacer(Modifier.width(12.dp))
+                                FloatingActionButton(
+                                    onClick = {
+                                        isRecordMode = true
+                                        viewModel.stopAudio() // Wajib stop audio ustadz saat mau rekam
+                                    },
+                                    containerColor = Color.White.copy(0.2f),
+                                    shape = CircleShape
+                                ) {
                                     Icon(Icons.Default.Mic, null, tint = Color.White)
                                 }
                             }
                         }
                     }
 
-                    // MODE REKAM (SETORAN SANTRI)
-                    AnimatedVisibility(visible = isRecordMode, enter = fadeIn(), exit = fadeOut()) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(32.dp),
-                            modifier = Modifier.fillMaxWidth(0.9f).padding(16.dp)
-                        ) {
-                            if (isUploading) {
-                                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                                    CircularProgressIndicator(Modifier.size(20.dp)); Spacer(Modifier.width(12.dp)); Text("Mengirim...")
+                    // Mode Rekam (Setoran Santri)
+                    AnimatedVisibility(visible = isRecordMode, enter = slideInVertically { it } + fadeIn(), exit = fadeOut()) {
+                        Card(colors = CardDefaults.cardColors(containerColor = surfaceColor), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(0.85f)) {
+                            Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = {
+                                    if (hasRecorded) { hasRecorded = false; audioFile = null } else isRecordMode = false
+                                }) {
+                                    Icon(if (hasRecorded) Icons.Default.Delete else Icons.Default.Close, null, tint = if (hasRecorded) Color.Red else Color.Gray)
                                 }
-                            } else {
-                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                    IconButton(onClick = {
-                                        if (hasRecorded) { hasRecorded = false; audioFile = null } else isRecordMode = false
-                                    }) {
-                                        Icon(if (hasRecorded) Icons.Default.Delete else Icons.Default.Close, null, tint = if (hasRecorded) Color.Red else Color.Gray)
-                                    }
 
-                                    Text(if (hasRecorded) "Siap Kirim" else if (isRecording) "Merekam..." else "Siap Rekam", fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (isUploading) "Mengirim..." else if (hasRecorded) "Siap Kirim" else if (isRecording) "Merekam..." else "Siap Rekam",
+                                    fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = textColor
+                                )
 
-                                    if (hasRecorded) {
-                                        IconButton(onClick = {
+                                if (hasRecorded && !isUploading) {
+                                    IconButton(
+                                        onClick = {
                                             scope.launch {
                                                 isUploading = true
                                                 val fileName = "setoran_${userId}_${System.currentTimeMillis()}.m4a"
-
-                                                // 1. Proses Upload ke Supabase
                                                 val url = audioFile?.let { uploadManager.uploadAudio(it, fileName) }
-
                                                 if (url != null) {
-                                                    // DEBUG: Cek apakah URL-nya muncul di Logcat
-                                                    println("RAFI_DEBUG: URL Supabase didapat -> $url")
-
-                                                    try {
-                                                        // 2. LAPOR KE FASTAPI (Bagian ini yang kemungkinan gagal)
-                                                        val response = RetrofitClient.materiApi.tambahSetoran(
-                                                            SetoranRequest(
-                                                                userId = userId,
-                                                                jilid = jilidId,
-                                                                halaman = pagerState.currentPage + 1,
-                                                                audioUrl = url  // Link dari Supabase tadi
-                                                            )
-                                                        )
-
-                                                        if (response.isSuccessful) {
-                                                            Toast.makeText(context, "Setoran Berhasil Masuk Database!", Toast.LENGTH_SHORT).show()
-                                                            isRecordMode = false
-                                                            hasRecorded = false
-                                                        } else {
-                                                            // Cek error dari FastAPI (biasanya 422 atau 500)
-                                                            val errorBody = response.errorBody()?.string()
-                                                            println("RAFI_DEBUG_ERROR: FastAPI menolak data -> $errorBody")
-                                                            Toast.makeText(context, "Database Error: ${response.code()}", Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    } catch (e: Exception) {
-                                                        println("RAFI_DEBUG_ERROR: Gagal konek ke FastAPI -> ${e.message}")
-                                                        Toast.makeText(context, "Gagal lapor ke server!", Toast.LENGTH_SHORT).show()
+                                                    val res = RetrofitClient.materiApi.tambahSetoran(SetoranRequest(userId, jilidId, pagerState.currentPage + 1, url))
+                                                    if (res.isSuccessful) {
+                                                        Toast.makeText(context, "Berhasil!", Toast.LENGTH_SHORT).show()
+                                                        isRecordMode = false; hasRecorded = false
                                                     }
                                                 }
                                                 isUploading = false
                                             }
-                                        }) {
-                                            Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color(0xFF007BFF))
-                                        }
-                                    } else {
-                                        Button(
-                                            onClick = {
-                                                if (isRecording) {
-                                                    // --- PROSES BERHENTI REKAM ---
-                                                    try {
-                                                        mediaRecorder?.let { recorder ->
-                                                            recorder.stop()
-                                                            recorder.reset()    // ✅ Penting agar file di-finish dengan benar
-                                                            recorder.release()
-                                                        }
-                                                    } catch (e: Exception) {
-                                                        android.util.Log.e("RAFI_DEBUG", "Gagal menghentikan rekaman: ${e.message}")
-                                                    }
+                                        },
+                                        modifier = Modifier.background(brandGreen, CircleShape)
+                                    ) { Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White) }
+                                } else {
+                                    IconButton(
+                                        onClick = {
+                                            if (!hasMicPermission) { launcher.launch(Manifest.permission.RECORD_AUDIO); return@IconButton }
+                                            if (isRecording) {
+                                                try {
+                                                    mediaRecorder?.apply { stop(); reset(); release() }
                                                     mediaRecorder = null
                                                     isRecording = false
-                                                    hasRecorded = true
-
-                                                    // ✅ CEK UKURAN FILE DI LOGCAT
-                                                    val size = audioFile?.length() ?: 0
-                                                    android.util.Log.d("RAFI_DEBUG", "Rekaman selesai. Ukuran file: $size bytes")
-
-                                                } else {
-                                                    // --- PROSES MULAI REKAM ---
-                                                    try {
-                                                        val file = File(context.cacheDir, "rec_${System.currentTimeMillis()}.m4a")
-                                                        audioFile = file
-
-                                                        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                                            MediaRecorder(context)
-                                                        } else {
-                                                            @Suppress("DEPRECATION")
-                                                            MediaRecorder()
-                                                        }
-
-                                                        mediaRecorder = recorder.apply {
-                                                            setAudioSource(MediaRecorder.AudioSource.MIC)
-                                                            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                                                            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                                                            // ✅ Tambahkan Bitrate agar suara lebih jernih dan ukuran file masuk akal
-                                                            setAudioEncodingBitRate(128000)
-                                                            setAudioSamplingRate(44100)
-                                                            setOutputFile(file.absolutePath)
-
-                                                            prepare()
-                                                            start()
-                                                        }
-                                                        isRecording = true
-                                                        android.util.Log.d("RAFI_DEBUG", "Mulai merekam ke: ${file.absolutePath}")
-                                                    } catch (e: Exception) {
-                                                        android.util.Log.e("RAFI_DEBUG", "Gagal mulai rekaman: ${e.message}")
-                                                        Toast.makeText(context, "Mic tidak tersedia / Izin ditolak", Toast.LENGTH_SHORT).show()
-                                                    }
+                                                    val size = audioFile?.length() ?: 0L
+                                                    if (size > 0) hasRecorded = true else Toast.makeText(context, "Gagal merekam!", Toast.LENGTH_SHORT).show()
+                                                } catch (e: Exception) { e.printStackTrace() }
+                                            } else {
+                                                val file = File(context.cacheDir, "rec_${System.currentTimeMillis()}.m4a")
+                                                audioFile = file
+                                                mediaRecorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()).apply {
+                                                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                                                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                                                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                                                    setOutputFile(file.absolutePath)
+                                                    prepare(); start()
                                                 }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = if (isRecording) Color.Red else Color(0xFF00D639)),
-                                            shape = CircleShape
-                                        ) {
-                                            Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, null)
-                                        }
+                                                isRecording = true
+                                                hasRecorded = false
+                                            }
+                                        },
+                                        modifier = Modifier.background(if (isRecording) Color.Red else brandGreen, CircleShape)
+                                    ) {
+                                        if (isUploading) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White)
+                                        else Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, null, tint = Color.White)
                                     }
                                 }
                             }

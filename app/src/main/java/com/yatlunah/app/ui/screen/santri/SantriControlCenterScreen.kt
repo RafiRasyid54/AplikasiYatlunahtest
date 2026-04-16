@@ -63,10 +63,11 @@ fun SantriControlCenterScreen(
             SantriBottomBar(
                 isDark = isDark,
                 brandGreen = brandGreen,
+                // Benar (Tambahkan parameter "santri" di akhir)
                 onNavigateToDashboard = {
-                    navController.navigate("dashboard_santri/$userId/$namaUser/$emailUser") {
-                        popUpTo("dashboard_santri/{id}/{nama}/{email}") { inclusive = true }
+                    navController.navigate("dashboard_santri/$userId/$namaUser/$emailUser/santri") {
                         launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 onNavigateToJilid = { /* Sudah di sini */ },

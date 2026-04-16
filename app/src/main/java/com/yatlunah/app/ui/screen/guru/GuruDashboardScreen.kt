@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -248,43 +250,72 @@ private fun SmallMenuCardModern(modifier: Modifier, label: String, sub: String, 
 }
 
 @Composable
-private fun GuruBottomBar(isDark: Boolean, brandGreen: Color, onNavigateToAntrean: () -> Unit, onNavigateToProfile: () -> Unit) {
+private fun GuruBottomBar(
+    isDark: Boolean,
+    brandGreen: Color,
+    onNavigateToAntrean: () -> Unit,
+    onNavigateToProfile: () -> Unit
+) {
+    // Penyesuaian warna agar sama dengan layar Santri/Admin
     val barBg = if (isDark) Color(0xFF161616) else Color.White
-    val inactiveColor = if (isDark) GuruColors.textSecondary else Color.Gray
+    val inactiveColor = if (isDark) Color(0xFF505050) else Color.Gray
 
     NavigationBar(
         containerColor = barBg,
+        // Efek lengkungan yang sama di bagian atas
         modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-        tonalElevation = 8.dp
+        tonalElevation = if (isDark) 0.dp else 8.dp
     ) {
+        // ITEM 1: HOME (SELECTED)
         NavigationBarItem(
             selected = true,
-            onClick = { },
-            icon = { Icon(Icons.Default.Home, "Home") },
-            label = { Text("Home", fontSize = 10.sp) },
+            onClick = { /* Sudah di Home */ },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home",
+                    modifier = Modifier.size(26.dp)
+                )
+            },
+            label = null, // Menghilangkan teks agar Apple-style minimalis
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = brandGreen,
-                selectedTextColor = brandGreen,
                 unselectedIconColor = inactiveColor,
-                unselectedTextColor = inactiveColor,
-                indicatorColor = brandGreen.copy(0.1f)
+                // Menggunakan Green Tint lembut saat terpilih
+                indicatorColor = if (isDark) Color(0x1422C55E) else Color(0xFFE8FFF0)
             )
         )
+
+        // ITEM 2: ANTREAN (ICON KHUSUS GURU)
         NavigationBarItem(
             selected = false,
             onClick = onNavigateToAntrean,
-            icon = { Icon(Icons.AutoMirrored.Filled.LibraryBooks, "Antrean") },
-            label = { Text("Antrean", fontSize = 10.sp) },
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.FactCheck,
+                    contentDescription = "Antrean",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            label = null,
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = inactiveColor,
                 indicatorColor = Color.Transparent
             )
         )
+
+        // ITEM 3: PROFIL
         NavigationBarItem(
             selected = false,
             onClick = onNavigateToProfile,
-            icon = { Icon(Icons.Default.Person, "Profil") },
-            label = { Text("Profil", fontSize = 10.sp) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Profil",
+                    modifier = Modifier.size(26.dp)
+                )
+            },
+            label = null,
             colors = NavigationBarItemDefaults.colors(
                 unselectedIconColor = inactiveColor,
                 indicatorColor = Color.Transparent

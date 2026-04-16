@@ -32,7 +32,6 @@ import com.yatlunah.app.ui.screen.santri.SantriDashboardScreen
 import com.yatlunah.app.ui.screen.materi.*
 import com.yatlunah.app.ui.screen.SplashScreen
 import com.yatlunah.app.ui.screen.profile.ProfileScreen
-// ✅ IMPORT SANTRI CONTROL CENTER
 import com.yatlunah.app.ui.screen.santri.SantriControlCenterScreen
 
 // --- IMPORT SCREEN GURU & ADMIN ---
@@ -82,9 +81,8 @@ class MainActivity : ComponentActivity() {
                         composable("register") {
                             RegisterScreen(
                                 onNavigateToLogin = { navController.popBackStack() },
-                                onRegisterSucces = { // <--- Pastikan namanya sama dengan di RegisterScreen
+                                onRegisterSucces = {
                                     navController.navigate("login") {
-                                        // Menghapus halaman register dari history agar tidak balik lagi kalau di-back
                                         popUpTo("register") { inclusive = true }
                                     }
                                 }
@@ -97,112 +95,92 @@ class MainActivity : ComponentActivity() {
                                 onLoginSuccess = { userId, namaUser, emailUser, role ->
                                     val encodedId = URLEncoder.encode(userId, "UTF-8")
                                     val encodedName = URLEncoder.encode(namaUser, "UTF-8")
+                                    val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                     val cleanRole = role.lowercase().trim()
 
                                     when (cleanRole) {
-                                        "admin" -> {
-                                            navController.navigate("dashboard_admin/$encodedId/$encodedName") {
-                                                popUpTo("login") { inclusive = true }
-                                            }
-                                        }
-                                        "guru" -> {
-                                            navController.navigate("dashboard_guru/$encodedId/$encodedName") {
-                                                popUpTo("login") { inclusive = true }
-                                            }
-                                        }
-                                        else -> {
-                                            // ✅ PERUBAHAN: Arahkan ke dashboard_santri
-                                            val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
-                                            navController.navigate("dashboard_santri/$encodedId/$encodedName/$encodedEmail") {
-                                                popUpTo("login") { inclusive = true }
-                                            }
-                                        }
+                                        "admin" -> navController.navigate("dashboard_admin/$encodedId/$encodedName/$encodedEmail/$cleanRole")
+                                        "guru" -> navController.navigate("dashboard_guru/$encodedId/$encodedName/$encodedEmail/$cleanRole")
+                                        else -> navController.navigate("dashboard_santri/$encodedId/$encodedName/$encodedEmail/$cleanRole")
                                     }
                                 }
                             )
                         }
 
-                        // --- 2. ADMIN FLOW ---
+                        // --- ADMIN FLOW ---
                         composable(
-                            route = "dashboard_admin/{id}/{nama}",
+                            route = "dashboard_admin/{id}/{nama}/{email}/{role}",
                             arguments = listOf(
                                 navArgument("id") { type = NavType.StringType },
-                                navArgument("nama") { type = NavType.StringType }
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType }
                             )
                         ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
-                            val rawName = backStackEntry.arguments?.getString("nama") ?: ""
-                            val nameAdmin = URLDecoder.decode(rawName, "UTF-8")
+                            val name = backStackEntry.arguments?.getString("nama") ?: ""
+                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "admin"
 
                             AdminDashboardScreen(
-                                namaAdmin = nameAdmin,
+                                namaAdmin = URLDecoder.decode(name, "UTF-8"),
                                 onNavigateToUserMgmt = { navController.navigate("admin_control_center") },
-                                onNavigateToProfile = {
-                                    navController.navigate("profile/$id/$rawName/${URLEncoder.encode("admin@yatlunah.com", "UTF-8")}")
-                                }
+                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") }
                             )
                         }
 
-                        // --- 3. GURU FLOW ---
-                        composable("dashboard_guru/{id}/{nama}") { backStackEntry ->
-                            val idGuru = backStackEntry.arguments?.getString("id") ?: ""
-                            val encodedName = backStackEntry.arguments?.getString("nama") ?: ""
-                            val nameGuru = URLDecoder.decode(encodedName, "UTF-8")
+                        // --- GURU FLOW ---
+                        composable(
+                            route = "dashboard_guru/{id}/{nama}/{email}/{role}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val name = backStackEntry.arguments?.getString("nama") ?: ""
+                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "guru"
 
                             GuruDashboardScreen(
-                                namaGuru = nameGuru,
-                                onNavigateToAntrean = {
-                                    navController.navigate("guru_control_center/$idGuru")
-                                },
-                                onNavigateToProfile = {
-                                    navController.navigate("profile/$idGuru/$encodedName/guru@yatlunah.com")
-                                }
+                                namaGuru = URLDecoder.decode(name, "UTF-8"),
+                                onNavigateToAntrean = { navController.navigate("guru_control_center/$id") },
+                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") }
                             )
                         }
 
                         composable("guru_control_center/{idGuru}") { backStackEntry ->
                             val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
-
                             GuruControlCenterScreen(
                                 idGuru = idGuru,
-                                onNavigateToSetoran = { id ->
-                                    navController.navigate("guru_menu_jilid/$id")
-                                },
-                                onNavigateToBimbingan = { id ->
-                                    navController.navigate("guru_bimbingan/$id")
-                                },
+                                onNavigateToSetoran = { id -> navController.navigate("guru_menu_jilid/$id") },
+                                onNavigateToBimbingan = { id -> navController.navigate("guru_bimbingan/$id") },
                                 onBack = { navController.popBackStack() }
                             )
                         }
 
                         composable("guru_menu_jilid/{idGuru}") { backStackEntry ->
                             val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
-
                             GuruJilidMenuScreen(
                                 onBack = { navController.popBackStack() },
-                                onNavigateToQueue = { jilidId ->
-                                    navController.navigate("guru_antrean/$jilidId/$idGuru")
-                                }
+                                onNavigateToQueue = { jilidId -> navController.navigate("guru_antrean/$jilidId/$idGuru") }
                             )
                         }
 
                         composable("guru_bimbingan/{idGuru}") { backStackEntry ->
                             val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
-
-                            GuruBimbinganScreen(
-                                idGuru = idGuru, // ✅ Kirim ID ke Screen
-                                onBack = { navController.popBackStack() }
-                            )
+                            GuruBimbinganScreen(idGuru = idGuru, onBack = { navController.popBackStack() })
                         }
 
                         composable("guru_antrean/{jilidId}/{idGuru}") { backStackEntry ->
                             val jilidId = backStackEntry.arguments?.getString("jilidId")?.toInt() ?: 1
                             val idGuru = backStackEntry.arguments?.getString("idGuru") ?: ""
-
                             GuruSetoranQueueScreen(
                                 jilidTarget = jilidId,
                                 onBack = { navController.popBackStack() },
-                                onNavigateToPenilaian = { setoran: Setoran ->
+                                onNavigateToPenilaian = { setoran ->
                                     val encName = URLEncoder.encode(setoran.namaSantri ?: "Siswa", "UTF-8")
                                     val encAudio = URLEncoder.encode(setoran.audioUrl ?: "", "UTF-8")
                                     navController.navigate("guru_nilai/${setoran.id}/$idGuru/$encName/${setoran.jilid}/${setoran.halaman}/$encAudio")
@@ -216,8 +194,7 @@ class MainActivity : ComponentActivity() {
                             val nama = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
                             val jilid = backStackEntry.arguments?.getString("jilid")?.toInt() ?: 1
                             val halaman = backStackEntry.arguments?.getString("halaman")?.toInt() ?: 1
-                            val rawAudio = backStackEntry.arguments?.getString("audioUrl") ?: ""
-                            val audioUrl = URLDecoder.decode(rawAudio, "UTF-8")
+                            val audioUrl = URLDecoder.decode(backStackEntry.arguments?.getString("audioUrl") ?: "", "UTF-8")
 
                             GuruPenilaianDetailScreen(
                                 setoranId = sId, idGuru = gId, nama = nama,
@@ -226,182 +203,138 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 4. SANTRI FLOW ---
-                        // ✅ PERUBAHAN: Rute diubah dari dashboard_user menjadi dashboard_santri
+                        // --- SANTRI FLOW ---
                         composable(
-                            route = "dashboard_santri/{id}/{nama}/{email}",
+                            route = "dashboard_santri/{id}/{nama}/{email}/{role}",
                             arguments = listOf(
                                 navArgument("id") { type = NavType.StringType },
                                 navArgument("nama") { type = NavType.StringType },
-                                navArgument("email") { type = NavType.StringType }
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType }
                             )
                         ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val name = backStackEntry.arguments?.getString("nama") ?: ""
                             val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
 
                             SantriDashboardScreen(
                                 userId = id,
                                 namaUser = URLDecoder.decode(name, "UTF-8"),
-                                emailUser = email, // ✅ TAMBAHKAN INI
-                                navController = navController, // ✅ TAMBAHKAN INI agar kartu bimbingan bisa diklik
-                                onLogout = {
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                },
-                                onNavigateToDashboard = {
-                                    // Logika pengecekan route agar tidak tumpang tindih
-                                    if (navController.currentBackStackEntry?.destination?.route != "dashboard_santri/{id}/{nama}/{email}") {
-                                        navController.navigate("dashboard_santri/$id/$name/$email") {
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
+                                emailUser = URLDecoder.decode(email, "UTF-8"),
+                                navController = navController,
+                                onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
+                                onNavigateToDashboard = { /* Stay */ },
+                                onNavigateToJilid = { navController.navigate("santri_control_center/$id/$name/$email/$role") },
+                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") },
+                                onNavigateToBimbingan = { navController.navigate("santri_bimbingan_detail/$id/$name/$email") },
+                                onNavigateToInfoProgram = { navController.navigate("info_program") }
+                            )
+                        }
+
+                        composable("santri_control_center/{id}/{nama}/{email}/{role}") { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val name = backStackEntry.arguments?.getString("nama") ?: ""
+                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
+
+                            SantriControlCenterScreen(
+                                userId = id, namaUser = name, emailUser = email,
+                                navController = navController,
+                                onNavigateToMateri = { navController.navigate("menu_belajar/$id/$name/$email") },
+                                onNavigateToRiwayat = { navController.navigate("riwayat_setoran/$id") },
+                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") }
+                            )
+                        }
+
+                        // --- UNIVERSAL PROFILE ---
+                        composable(
+                            route = "profile/{id}/{nama}/{email}/{role}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val n = backStackEntry.arguments?.getString("nama") ?: ""
+                            val e = backStackEntry.arguments?.getString("email") ?: ""
+                            val r = backStackEntry.arguments?.getString("role")?.lowercase() ?: "santri"
+
+                            ProfileScreen(
+                                userIdAsli = id, namaUser = URLDecoder.decode(n, "UTF-8"),
+                                emailUser = URLDecoder.decode(e, "UTF-8"), role = r,
+                                onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
+                                onNavigateToHome = {
+                                    when (r) {
+                                        "admin" -> navController.navigate("dashboard_admin/$id/$n/$e/$r") { popUpTo(0) }
+                                        "guru" -> navController.navigate("dashboard_guru/$id/$n/$e/$r") { popUpTo(0) }
+                                        else -> navController.navigate("dashboard_santri/$id/$n/$e/$r") { popUpTo(0) }
                                     }
                                 },
                                 onNavigateToJilid = {
-                                    navController.navigate("santri_control_center/$id/$name/$email") {
-                                        launchSingleTop = true
-                                        popUpTo("dashboard_santri/{id}/{nama}/{email}") {
-                                            saveState = true
-                                        }
+                                    when (r) {
+                                        "admin" -> navController.navigate("admin_control_center")
+                                        "guru" -> navController.navigate("guru_control_center/$id")
+                                        else -> navController.navigate("santri_control_center/$id/$n/$e/$r")
                                     }
-                                },
-                                onNavigateToProfile = {
-                                    navController.navigate("profile/$id/$name/$email") {
-                                        launchSingleTop = true
-                                    }
-                                },
-                                onNavigateToBimbingan = {
-                                    // ✅ Arahkan ke Detail Bimbingan yang baru saja kita buat
-                                    navController.navigate("santri_bimbingan_detail/$id/$name/$email")
-                                },
-                                onNavigateToInfoProgram = {
-                                    navController.navigate("info_program")
                                 }
                             )
                         }
 
+                        // --- INFO PROGRAM & DETAIL ---
+                        composable("info_program") {
+                            ProgramListScreen(
+                                onBack = { navController.popBackStack() },
+                                onNavigateToDetail = { id -> navController.navigate("program_detail/$id") }
+                            )
+                        }
+
+                        composable(
+                            route = "program_detail/{programId}",
+                            arguments = listOf(navArgument("programId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val progId = backStackEntry.arguments?.getString("programId") ?: "1"
+                            val programData = listOf(
+                                ProgramYatlunah(id = 1, nama = "Program Reguler", deskripsi = "Pembelajaran rutin...", targetPeserta = "Anak-anak & Dewasa", materiUtama = "Tahsin dasar", fiturUnggulan = listOf("Bimbingan 1-on-1"))
+                            ).find { it.id.toString() == progId }
+
+                            ProgramDetailScreen(
+                                program = programData,
+                                onBack = { navController.popBackStack() },
+                                // ✅ FIXED: Parameter daftar_bimbingan disamakan agar tidak crash
+                                onRegister = { navController.navigate("daftar_bimbingan/Guest/User/guest@mail.com") },
+                                fiturUnggulan = listOf("✔ Bimbingan Intensif", "✔ Sertifikat", "✔ Akses Fleksibel")
+                            )
+                        }
+
+                        // --- FITUR SANTRI LAINNYA ---
                         composable("santri_bimbingan_detail/{id}/{nama}/{email}") { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val name = backStackEntry.arguments?.getString("nama") ?: ""
                             val email = backStackEntry.arguments?.getString("email") ?: ""
-
                             val viewModel: SantriViewModel = viewModel()
-
-                            // Ambil status terbaru dari database
-                            LaunchedEffect(id) {
-                                viewModel.fetchStatusBimbingan(id)
-                            }
+                            LaunchedEffect(id) { viewModel.fetchStatusBimbingan(id) }
 
                             SantriBimbinganDetailScreen(
                                 status = viewModel.bimbinganStatus,
                                 namaGuru = viewModel.namaGuru,
                                 onBack = { navController.popBackStack() },
-                                // ✅ DI SINI TEMPATNYA MENGHUBUNGKAN TOMBOL KE PAGE DAFTAR
-                                onNavigateToFormDaftar = {
-                                    navController.navigate("daftar_bimbingan/$id/$name/$email")
-                                }
+                                onNavigateToFormDaftar = { navController.navigate("daftar_bimbingan/$id/$name/$email") }
                             )
                         }
 
-                        // Di dalam NavHost MainActivity.kt
-                        composable("santri_control_center/{id}/{nama}/{email}") {
-                            val id = it.arguments?.getString("id") ?: ""
-                            val name = it.arguments?.getString("nama") ?: ""
-                            val email = it.arguments?.getString("email") ?: ""
-
-                            SantriControlCenterScreen(
-                                userId = id,
-                                namaUser = name,
-                                emailUser = email,
-                                navController = navController,
-                                onNavigateToMateri = { navController.navigate("menu_belajar/$id/$name/$email") },
-                                onNavigateToRiwayat = { navController.navigate("riwayat_setoran/$id") },
-                                onNavigateToProfile = {
-                                    // Gunakan launchSingleTop agar tidak membuat instansi profile baru terus menerus
-                                    navController.navigate("profile/$id/$name/$email") {
-                                        launchSingleTop = true
-                                    }
-                                }
-                            )
-                        }
-
-                        composable(
-                            route = "menu_belajar/{id}/{nama}/{email}",
-                            arguments = listOf(
-                                navArgument("id") { type = NavType.StringType },
-                                navArgument("nama") { type = NavType.StringType },
-                                navArgument("email") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                        composable("menu_belajar/{id}/{nama}/{email}") { backStackEntry ->
                             val name = backStackEntry.arguments?.getString("nama") ?: ""
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
                             val email = backStackEntry.arguments?.getString("email") ?: ""
-
                             MenuBelajarScreen(
                                 namaUser = URLDecoder.decode(name, "UTF-8"),
-                                // ✅ HANYA GUNAKAN onBack SEKARANG
                                 onBack = { navController.popBackStack() },
                                 onNavigateToMateri = { navController.navigate("list_jilid/$id/$name/$email") },
                                 onNavigateToRiwayat = { navController.navigate("riwayat_setoran/$id") }
                             )
-                        }
-
-                        composable(
-                            route = "profile/{id}/{nama}/{email}",
-                            arguments = listOf(
-                                navArgument("id") { type = NavType.StringType },
-                                navArgument("nama") { type = NavType.StringType },
-                                navArgument("email") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val id = backStackEntry.arguments?.getString("id") ?: ""
-                            val rawName = backStackEntry.arguments?.getString("nama") ?: ""
-                            val rawEmail = backStackEntry.arguments?.getString("email") ?: ""
-
-                            val decodedName = URLDecoder.decode(rawName, "UTF-8")
-                            val decodedEmail = URLDecoder.decode(rawEmail, "UTF-8")
-
-                            ProfileScreen(
-                                userIdAsli = id,
-                                namaUser = decodedName,
-                                emailUser = decodedEmail,
-                                onLogout = {
-                                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                                },
-                                onNavigateToHome = {
-                                    // ✅ CEK ROLE SEBELUM PULANG
-                                    if (decodedEmail.contains("admin")) {
-                                        navController.navigate("dashboard_admin/$id/$rawName") {
-                                            popUpTo("dashboard_admin/{id}/{nama}") { inclusive = true }
-                                        }
-                                    } else {
-                                        navController.navigate("dashboard_santri/$id/$rawName/$rawEmail") {
-                                            popUpTo("dashboard_santri/{id}/{nama}/{email}") { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onNavigateToJilid = {
-                                    // Logika Control Center (sudah benar di kode Anda)
-                                    when {
-                                        decodedEmail.contains("admin") -> { navController.navigate("admin_control_center") }
-                                        decodedEmail.contains("guru") -> { navController.navigate("guru_control_center/$id") }
-                                        else -> { navController.navigate("santri_control_center/$id/$rawName/$rawEmail") }
-                                    }
-                                }
-                            )
-                        }
-
-                        composable("baca_jilid/{jilidId}/{userId}") { backStackEntry ->
-                            val jid = backStackEntry.arguments?.getString("jilidId")?.toInt()?.let { if (it <= 0) 1 else it } ?: 1
-                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
-                            PdfJilidViewerScreen(jilidId = jid, userId = uid, onBack = { navController.popBackStack() })
-                        }
-
-                        composable("riwayat_setoran/{userId}") { backStackEntry ->
-                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
-                            RiwayatSetoranScreen(userId = uid, onBack = { navController.popBackStack() })
                         }
 
                         composable("list_jilid/{id}/{nama}/{email}") { backStackEntry ->
@@ -412,7 +345,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 5. REGISTER & ADMIN FLOW ---
+                        composable("baca_jilid/{jilidId}/{userId}") { backStackEntry ->
+                            val jid = backStackEntry.arguments?.getString("jilidId")?.toInt() ?: 1
+                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
+                            PdfJilidViewerScreen(jilidId = jid, userId = uid, onBack = { navController.popBackStack() })
+                        }
+
+                        composable("riwayat_setoran/{userId}") { backStackEntry ->
+                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
+                            RiwayatSetoranScreen(userId = uid, onBack = { navController.popBackStack() })
+                        }
+
+                        // --- ✅ DIKEMBALIKAN: RUTE ADMIN & FORM PENDAFTARAN YANG TERHAPUS ---
                         composable("user_management") {
                             UserManagementMenuScreen(
                                 onBack = { navController.popBackStack() },
@@ -421,7 +365,6 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("user_list/{role}") { backStackEntry ->
-                            // ✅ PERUBAHAN: Default ke 'santri', bukan 'peserta'
                             val r = backStackEntry.arguments?.getString("role") ?: "santri"
                             UserListScreen(
                                 role = r,
@@ -434,30 +377,15 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable(
-                            route = "user_detail/{id}/{nama}/{email}/{role}",
-                            arguments = listOf(
-                                navArgument("id") { type = NavType.StringType },
-                                navArgument("nama") { type = NavType.StringType },
-                                navArgument("email") { type = NavType.StringType },
-                                navArgument("role") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
+                        composable("user_detail/{id}/{nama}/{email}/{role}") { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
                             val n = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
                             val e = URLDecoder.decode(backStackEntry.arguments?.getString("email") ?: "", "UTF-8")
-                            // ✅ PERUBAHAN: Default ke 'santri', bukan 'peserta'
                             val r = backStackEntry.arguments?.getString("role") ?: "santri"
-
-                            UserDetailScreen(
-                                userId = id, userName = n, userEmail = e,
-                                initialRole = r,
-                                onBack = { navController.popBackStack() }
-                            )
+                            UserDetailScreen(userId = id, userName = n, userEmail = e, initialRole = r, onBack = { navController.popBackStack() })
                         }
 
                         composable("admin_control_center") {
-                            // Ambil data admin dari context rute jika diperlukan (misal untuk warna brand)
                             AdminControlCenterScreen(
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },
@@ -466,9 +394,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable("admin_quotes") {
-                            AdminQuoteScreen(onBack = { navController.popBackStack() })
-                        }
+                        composable("admin_quotes") { AdminQuoteScreen(onBack = { navController.popBackStack() }) }
 
                         composable(
                             route = "daftar_bimbingan/{id}/{nama}/{email}",
@@ -479,56 +405,10 @@ class MainActivity : ComponentActivity() {
                             )
                         ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
-                            // nama & email ada di rute tapi tidak kita kirim ke screen pendaftaran karena tidak ada di tabel DB
-
-                            val santriViewModel: SantriViewModel = viewModel()
-
-                            // Konversi progres dari 0.0-1.0 (float) ke 0-100 (int)
-                            val currentProgress = (santriViewModel.progressPercent * 100).toInt()
-
                             DaftarBimbinganScreen(
                                 userId = id,
-                                totalProgress = 85, // ✅ Dinamis dari DB
+                                totalProgress = 85,
                                 onBack = { navController.popBackStack() }
-                            )
-                        }
-
-                        composable("info_program") {
-                            ProgramListScreen(
-                                onBack = { navController.popBackStack() },
-                                onNavigateToDetail = { id ->
-                                    navController.navigate("program_detail/$id")
-                                }
-                            )
-                        }
-
-                        composable("program_detail/{programId}") { backStackEntry ->
-                            val idString = backStackEntry.arguments?.getString("programId").orEmpty().ifEmpty { "1" }
-
-                            val daftarProgram = listOf(
-                                ProgramYatlunah(
-                                    id = 1,
-                                    nama = "Program Reguler",
-                                    deskripsi = "Pembelajaran rutin Jilid 1-6...",
-                                    targetPeserta = "Anak-anak & Dewasa",
-                                    materiUtama = "Tahsin dasar",
-                                    fiturUnggulan = listOf("Bimbingan 1-on-1", "Sertifikat")
-                                )
-                            )
-
-                            val programData = daftarProgram.find { it.id.toString() == idString }
-
-                            ProgramDetailScreen(
-                                program = programData,
-                                onBack = { navController.popBackStack() },
-                                onRegister = { _ ->
-                                    navController.navigate("daftar_bimbingan/user_default/85")
-                                },
-                                fiturUnggulan = listOf(
-                                    "✔ Bimbingan Intensif 1-on-1",
-                                    "✔ Sertifikat Kelulusan Resmi",
-                                    "✔ Akses Materi Fleksibel"
-                                )
                             )
                         }
                     }
@@ -541,11 +421,6 @@ class MainActivity : ComponentActivity() {
         val workRequest = PeriodicWorkRequestBuilder<NotificationWorker>(24, TimeUnit.HOURS)
             .setInitialDelay(10, TimeUnit.SECONDS)
             .build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "yatlunah_notif",
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork("yatlunah_notif", ExistingPeriodicWorkPolicy.KEEP, workRequest)
     }
 }
-
