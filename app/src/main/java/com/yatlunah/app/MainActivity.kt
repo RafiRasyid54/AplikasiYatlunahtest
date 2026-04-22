@@ -68,11 +68,18 @@ class MainActivity : ComponentActivity() {
                 ) {
                     NavHost(
                         navController = navController,
-                        startDestination = "login"
+                        // 1. UBAH startDestination ke splash
+                        startDestination = "splash"
                     ) {
                         composable("splash") {
                             SplashScreen(onTimeout = {
-                                navController.navigate("login") {
+                                // 2. LOGIKA GUEST: Jika tidak ada session, langsung ke Dashboard Santri
+                                // Kita gunakan ID "guest_user" sebagai penanda
+                                val guestId = "guest_user"
+                                val guestName = URLEncoder.encode("Tamu Yatlunah", "UTF-8")
+                                val guestEmail = URLEncoder.encode("guest@yatlunah.id", "UTF-8")
+
+                                navController.navigate("dashboard_santri/$guestId/$guestName/$guestEmail/santri") {
                                     popUpTo("splash") { inclusive = true }
                                 }
                             })
@@ -218,6 +225,8 @@ class MainActivity : ComponentActivity() {
                             val email = backStackEntry.arguments?.getString("email") ?: ""
                             val role = backStackEntry.arguments?.getString("role") ?: "santri"
 
+                            val isGuest = id == "guest_user"
+
                             SantriDashboardScreen(
                                 userId = id,
                                 namaUser = URLDecoder.decode(name, "UTF-8"),
@@ -226,8 +235,21 @@ class MainActivity : ComponentActivity() {
                                 onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
                                 onNavigateToDashboard = { /* Stay */ },
                                 onNavigateToJilid = { navController.navigate("santri_control_center/$id/$name/$email/$role") },
-                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") },
-                                onNavigateToBimbingan = { navController.navigate("santri_bimbingan_detail/$id/$name/$email") },
+                                // 3. REDIRECT PROFIL: Jika guest, arahkan ke register
+                                onNavigateToProfile = {
+                                    if (isGuest) {
+                                        navController.navigate("register")
+                                    } else {
+                                        navController.navigate("profile/$id/$name/$email/$role")
+                                    }
+                                },
+                                onNavigateToBimbingan = {
+                                    if (isGuest) {
+                                        navController.navigate("register") // Bimbingan butuh login
+                                    } else {
+                                        navController.navigate("santri_bimbingan_detail/$id/$name/$email")
+                                    }
+                                },
                                 onNavigateToInfoProgram = { navController.navigate("info_program") }
                             )
                         }
@@ -339,8 +361,17 @@ class MainActivity : ComponentActivity() {
 
                         composable("list_jilid/{id}/{nama}/{email}") { backStackEntry ->
                             val uid = backStackEntry.arguments?.getString("id") ?: ""
+                            val isGuest = uid == "guest_user"
+
                             JilidListScreen(
-                                onNavigateToDetail = { jid -> navController.navigate("baca_jilid/$jid/$uid") },
+                                onNavigateToDetail = { jid ->
+                                    // Sesuai dokumen: Guest hanya boleh buka Jilid 1
+                                    if (isGuest && jid > 1) {
+                                        navController.navigate("register") // Atau tampilkan Dialog Register
+                                    } else {
+                                        navController.navigate("baca_jilid/$jid/$uid")
+                                    }
+                                },
                                 onNavigateToHome = { navController.popBackStack() }
                             )
                         }

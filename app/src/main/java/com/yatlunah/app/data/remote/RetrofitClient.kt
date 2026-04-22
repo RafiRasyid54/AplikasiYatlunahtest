@@ -41,4 +41,13 @@ object RetrofitClient {
         retrofit.create(BimbinganApiService::class.java)
     }
 
+    // Di dalam object RetrofitClient
+    val prayerApi: PrayerApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.aladhan.com/") // URL dasar Aladhan
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(PrayerApiService::class.java)
+    }
+
 }

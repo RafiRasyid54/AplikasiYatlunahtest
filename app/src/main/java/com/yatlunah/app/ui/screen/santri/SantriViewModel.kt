@@ -5,9 +5,9 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yatlunah.app.data.repository.AuthRepository
+import com.yatlunah.app.data.repository.PrayerRepository
 import com.yatlunah.app.data.remote.RetrofitClient // ✅ Tambahkan import ini
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -29,6 +29,10 @@ class SantriViewModel : ViewModel() {
     // ✅ --- STATE BARU: STATUS BIMBINGAN ---
     var bimbinganStatus by mutableStateOf("")
     var namaGuru by mutableStateOf("")
+
+    var prayerTimes by mutableStateOf<Map<String, String>>(emptyMap())
+    var hijriDate by mutableStateOf("")
+    private val prayerRepository = PrayerRepository()
 
     // ✅ FUNGSI BARU: AMBIL STATUS DARI DATABASE
     fun fetchStatusBimbingan(userId: String) {
@@ -60,6 +64,24 @@ class SantriViewModel : ViewModel() {
         }
     }
 
+    fun fetchPrayerAndHijri(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            try {
+                // ✅ Gunakan instance 'prayerRepository', bukan 'PrayerRepository'
+                val response = prayerRepository.getPrayerTimes(lat, lon)
+                if (response.isSuccessful) {
+                    val data = response.body()?.data
+                    prayerTimes = data?.timings ?: emptyMap()
+
+                    val hijri = data?.date?.hijri
+                    // Opsional: Kamu bisa memetakan nama bulan ke Bahasa Indonesia jika mau
+                    hijriDate = "${hijri?.day} ${hijri?.month?.en} ${hijri?.year} H"
+                }
+            } catch (e: Exception) {
+                Log.e("SantriVM", "Gagal ambil jadwal: ${e.message}")
+            }
+        }
+    }
     fun fetchStats(userId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
@@ -85,7 +107,7 @@ class SantriViewModel : ViewModel() {
     fun fetchQuoteBerdasarkanHari() {
         viewModelScope.launch(Dispatchers.IO) {
             // PERBAIKAN LOCALE: Gunakan Locale.forLanguageTag atau constructor yang benar
-            val localeId = Locale("id", "ID")
+            val localeId = Locale.forLanguageTag("id-ID")
             val sdf = SimpleDateFormat("EEEE", localeId)
             val hariIni = sdf.format(Date())
 
