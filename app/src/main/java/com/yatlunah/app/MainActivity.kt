@@ -50,10 +50,23 @@ import com.yatlunah.app.ui.screen.bimbingan.DaftarBimbinganScreen
 import com.yatlunah.app.ui.screen.guru.GuruBimbinganScreen
 import com.yatlunah.app.ui.screen.info_program.ProgramDetailScreen
 import com.yatlunah.app.ui.screen.info_program.ProgramListScreen
+import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
 import com.yatlunah.app.ui.screen.santri.SantriBimbinganDetailScreen
 import com.yatlunah.app.ui.screen.santri.SantriViewModel
 
 import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
+
+import android.widget.Toast // Untuk error 'Toast'
+import androidx.compose.runtime.rememberCoroutineScope // Untuk 'rememberCoroutineScope'
+import androidx.compose.ui.platform.LocalContext // Untuk 'LocalContext'
+import kotlinx.coroutines.launch // Untuk scope.launch
+import com.yatlunah.app.ui.screen.admin.InputLatihanScreen // Untuk 'InputLatihanScreen'
+import com.yatlunah.app.data.remote.RetrofitClient // Untuk 'RetrofitClient'
+import com.yatlunah.app.data.model.LatihanSoal // Untuk tipe data LatihanSoal
+
+import com.yatlunah.app.ui.screen.latihan.LatihanViewModel
+import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,7 +100,12 @@ class MainActivity : ComponentActivity() {
 
                         composable("register") {
                             RegisterScreen(
-                                onNavigateToLogin = { navController.popBackStack() },
+                                // PERBAIKAN: Gunakan navigate("login") daripada popBackStack agar pasti ke halaman Login
+                                onNavigateToLogin = {
+                                    navController.navigate("login") {
+                                        popUpTo("register") { inclusive = true }
+                                    }
+                                },
                                 onRegisterSucces = {
                                     navController.navigate("login") {
                                         popUpTo("register") { inclusive = true }
@@ -105,10 +123,18 @@ class MainActivity : ComponentActivity() {
                                     val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                     val cleanRole = role.lowercase().trim()
 
-                                    when (cleanRole) {
-                                        "admin" -> navController.navigate("dashboard_admin/$encodedId/$encodedName/$encodedEmail/$cleanRole")
-                                        "guru" -> navController.navigate("dashboard_guru/$encodedId/$encodedName/$encodedEmail/$cleanRole")
-                                        else -> navController.navigate("dashboard_santri/$encodedId/$encodedName/$encodedEmail/$cleanRole")
+                                    val route = when (cleanRole) {
+                                        "admin" -> "dashboard_admin/$encodedId/$encodedName/$encodedEmail/$cleanRole"
+                                        "guru" -> "dashboard_guru/$encodedId/$encodedName/$encodedEmail/$cleanRole"
+                                        else -> "dashboard_santri/$encodedId/$encodedName/$encodedEmail/$cleanRole"
+                                    }
+
+                                    navController.navigate(route) {
+                                        // PERBAIKAN KRUSIAL: Hapus Dashboard Guest dari history
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            inclusive = true
+                                        }
+                                        launchSingleTop = true
                                     }
                                 }
                             )
@@ -230,27 +256,26 @@ class MainActivity : ComponentActivity() {
                             SantriDashboardScreen(
                                 userId = id,
                                 namaUser = URLDecoder.decode(name, "UTF-8"),
-                                emailUser = URLDecoder.decode(email, "UTF-8"),
                                 navController = navController,
-                                onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
                                 onNavigateToDashboard = { /* Stay */ },
-                                onNavigateToJilid = { navController.navigate("santri_control_center/$id/$name/$email/$role") },
-                                // 3. REDIRECT PROFIL: Jika guest, arahkan ke register
+                                onNavigateToJilid = {
+                                    navController.navigate("santri_control_center/$id/$name/$email/$role")
+                                },
                                 onNavigateToProfile = {
-                                    if (isGuest) {
-                                        navController.navigate("register")
-                                    } else {
-                                        navController.navigate("profile/$id/$name/$email/$role")
-                                    }
+                                    if (isGuest) navController.navigate("login") // Ke Login jika Guest
+                                    else navController.navigate("profile/$id/$name/$email/$role")
                                 },
                                 onNavigateToBimbingan = {
                                     if (isGuest) {
-                                        navController.navigate("register") // Bimbingan butuh login
+                                        navController.navigate("login")
                                     } else {
+                                        // Langsung ke detail bimbingan (Page yang menampilkan status dan guru)
                                         navController.navigate("santri_bimbingan_detail/$id/$name/$email")
                                     }
                                 },
-                                onNavigateToInfoProgram = { navController.navigate("info_program") }
+                                onNavigateToInfoProgram = {
+                                    navController.navigate("info_program")
+                                }
                             )
                         }
 
@@ -265,7 +290,9 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 onNavigateToMateri = { navController.navigate("menu_belajar/$id/$name/$email") },
                                 onNavigateToRiwayat = { navController.navigate("riwayat_setoran/$id") },
-                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") }
+                                onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") },
+                                onNavigateToLatihan = {
+                                    navController.navigate("latihan_makhraj") }
                             )
                         }
 
@@ -379,7 +406,16 @@ class MainActivity : ComponentActivity() {
                         composable("baca_jilid/{jilidId}/{userId}") { backStackEntry ->
                             val jid = backStackEntry.arguments?.getString("jilidId")?.toInt() ?: 1
                             val uid = backStackEntry.arguments?.getString("userId") ?: ""
-                            PdfJilidViewerScreen(jilidId = jid, userId = uid, onBack = { navController.popBackStack() })
+
+                            PdfJilidViewerScreen(
+                                jilidId = jid,
+                                userId = uid,
+                                onNavigateToLatihan = { jilidLatihan, halamanLatihan ->
+                                    // Mengarahkan ke rute latihan dan mengirimkan parameter jilid, halaman, dan userId
+                                    navController.navigate("latihan_makhraj/$jilidLatihan/$halamanLatihan/$uid")
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
                         }
 
                         composable("riwayat_setoran/{userId}") { backStackEntry ->
@@ -416,16 +452,66 @@ class MainActivity : ComponentActivity() {
                             UserDetailScreen(userId = id, userName = n, userEmail = e, initialRole = r, onBack = { navController.popBackStack() })
                         }
 
+                        // Di dalam NavHost pada MainActivity.kt
                         composable("admin_control_center") {
                             AdminControlCenterScreen(
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },
                                 onNavigateToLaporan = { /* TODO */ },
+                                onNavigateToInputLatihan = { navController.navigate("input_latihan") }, // ✅ Tambahkan ini
                                 onBack = { navController.popBackStack() }
                             )
                         }
 
+                        composable("input_latihan") {
+                            val scope = rememberCoroutineScope()
+                            val context = LocalContext.current
+
+                            InputLatihanScreen(
+                                onBack = { navController.popBackStack() },
+                                onSave = { soalBaru: LatihanSoal -> // ✅ Tipe data didefinisikan eksplisit
+                                    scope.launch {
+                                        try {
+                                            // Memanggil API untuk menyimpan soal
+                                            val response = RetrofitClient.latihanApi.tambahSoalLatihan(soalBaru)
+
+                                            if (response.isSuccessful) {
+                                                Toast.makeText(context, "Soal berhasil di-mapping!", Toast.LENGTH_SHORT).show()
+                                                navController.popBackStack()
+                                            } else {
+                                                Toast.makeText(context, "Gagal menyimpan: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
                         composable("admin_quotes") { AdminQuoteScreen(onBack = { navController.popBackStack() }) }
+
+                        // Pastikan kata 'composable' tidak terhapus
+                        composable("latihan_makhraj/{jilidId}/{halaman}/{userId}") { backStackEntry ->
+                            val jidString = backStackEntry.arguments?.getString("jilidId")
+                            val halString = backStackEntry.arguments?.getString("halaman")
+                            val uid = backStackEntry.arguments?.getString("userId") ?: ""
+
+                            val jid = jidString?.toIntOrNull() ?: 1
+                            val hal = halString?.toIntOrNull() ?: 1
+
+                            // Menggunakan import yang sudah bersih di atas
+                            val latihanViewModel: LatihanViewModel = viewModel()
+
+                            LaunchedEffect(jid, hal) {
+                                latihanViewModel.fetchSoalSesi(jilid = jid, halaman = hal, uid = uid)
+                            }
+
+                            LatihanMakhrajScreen(
+                                navController = navController,
+                                viewModel = latihanViewModel
+                            )
+                        }
 
                         composable(
                             route = "daftar_bimbingan/{id}/{nama}/{email}",

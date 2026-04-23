@@ -7,10 +7,9 @@ import retrofit2.http.Query
 
 interface PrayerApiService {
     @GET("v1/timings")
-    // Ganti 'async fun' menjadi 'suspend fun'
-    suspend fun getPrayerTimes(
+    suspend fun getPrayerTimings(
         @Query("latitude") lat: Double,
         @Query("longitude") lon: Double,
-        @Query("method") method: Int = 1
+        @Query("method") method: Int = 11
     ): Response<PrayerResponse>
 }

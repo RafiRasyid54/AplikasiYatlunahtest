@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Assignment // Icon baru untuk Latihan
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
@@ -28,7 +29,8 @@ fun AdminControlCenterScreen(
     onNavigateToUserMgmt: () -> Unit,
     onNavigateToQuotes: () -> Unit,
     onNavigateToLaporan: () -> Unit,
-    onBack: () -> Unit // ✅ Restored to match MainActivity
+    onNavigateToInputLatihan: () -> Unit, // ✅ Tambahkan parameter navigasi baru
+    onBack: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
 
@@ -48,7 +50,6 @@ fun AdminControlCenterScreen(
                         color = titleColor
                     )
                 },
-                // ✅ Navigation Icon restored for the Back Button
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -73,11 +74,31 @@ fun AdminControlCenterScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
+            // 1. Manajemen Pengguna
             AdminHubCard("Manajemen Pengguna", "Kelola role Siswa & Guru.", Icons.Default.People, Color(0xFF2563EB), surfaceColor, isDark, onNavigateToUserMgmt)
+
             Spacer(Modifier.height(12.dp))
+
+            // 2. Mapping Latihan Soal (Menu Baru)
+            AdminHubCard(
+                title = "Mapping Latihan Soal",
+                desc = "Input bank soal & mapping ke halaman PDF.",
+                icon = Icons.Default.Assignment,
+                accentColor = Color(0xFFD97706), // Warna Amber untuk membedakan
+                surfaceColor = surfaceColor,
+                isDark = isDark,
+                onClick = onNavigateToInputLatihan
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // 3. Kutipan Harian
             AdminHubCard("Kutipan Harian", "Atur quotes inspiratif.", Icons.Default.FormatQuote, Color(0xFF16A34A), surfaceColor, isDark, onNavigateToQuotes)
+
             Spacer(Modifier.height(12.dp))
-            AdminHubCard("Laporan Aktivitas", "Statistik & progres santri.", Icons.Default.Assessment, Color(0xFFD97706), surfaceColor, isDark, onNavigateToLaporan)
+
+            // 4. Laporan Aktivitas
+            AdminHubCard("Laporan Aktivitas", "Statistik & progres santri.", Icons.Default.Assessment, Color(0xFF6366F1), surfaceColor, isDark, onNavigateToLaporan)
 
             Spacer(Modifier.height(32.dp))
         }

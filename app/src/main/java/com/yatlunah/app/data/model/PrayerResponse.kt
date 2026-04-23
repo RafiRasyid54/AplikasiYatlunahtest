@@ -7,26 +7,29 @@ data class PrayerResponse(
 )
 
 data class PrayerData(
-    val timings: Map<String, String>,
-    val date: DateData
+    val timings: Timings,
+    val date: DateInfo
 )
 
-data class DateData(
+data class Timings(
+    @SerializedName("Fajr") val fajr: String,
+    @SerializedName("Dhuhr") val dhuhr: String,
+    @SerializedName("Asr") val asr: String,
+    @SerializedName("Maghrib") val maghrib: String,
+    @SerializedName("Isha") val isha: String
+)
+
+data class DateInfo(
     val hijri: HijriData
 )
 
 data class HijriData(
-    val day: String,
+    val date: String,
     val month: HijriMonth,
-    val year: String,
-    @SerializedName("format") val designation: Designation
+    val year: String
 )
 
 data class HijriMonth(
-    val en: String, // Nama bulan dalam Inggris (misal: Ramadan)
-    val ar: String  // Nama bulan dalam Arab
-)
-
-data class Designation(
-    val abbreviated: String // Misal: AH
+    val en: String,
+    val ar: String
 )

@@ -1,5 +1,6 @@
 package com.yatlunah.app.data.remote
 
+import com.yatlunah.app.data.remote.LatihanApiService
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -50,4 +51,8 @@ object RetrofitClient {
             .create(PrayerApiService::class.java)
     }
 
+    val latihanApi: LatihanApiService by lazy {
+        retrofit.create(LatihanApiService::class.java)
+    }
 }
+

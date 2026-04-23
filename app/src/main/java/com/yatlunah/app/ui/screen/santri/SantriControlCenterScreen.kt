@@ -40,7 +40,9 @@ fun SantriControlCenterScreen(
     navController: NavController,
     onNavigateToMateri: () -> Unit,
     onNavigateToRiwayat: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    // ✅ TAMBAHKAN PARAMETER INI UNTUK ROUTING LATIHAN
+    onNavigateToLatihan: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) ControlColors.darkBackground else ControlColors.lightBackground
@@ -59,11 +61,9 @@ fun SantriControlCenterScreen(
             )
         },
         bottomBar = {
-            // ✅ PERBAIKAN: Parameter disesuaikan dengan definisi fungsi di bawah
             SantriBottomBar(
                 isDark = isDark,
                 brandGreen = brandGreen,
-                // Benar (Tambahkan parameter "santri" di akhir)
                 onNavigateToDashboard = {
                     navController.navigate("dashboard_santri/$userId/$namaUser/$emailUser/santri") {
                         launchSingleTop = true
@@ -97,6 +97,25 @@ fun SantriControlCenterScreen(
             })
             ControlMenuCard("Riwayat Setoran", "Lihat catatan progres dari Guru.", Icons.Default.History, Color(0xFFFF9800), surfaceColor, isDark, onNavigateToRiwayat)
 
+            // ✅ TAMBAHKAN KARTU MENU LATIHAN MAKHRAJ DI SINI
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "EVALUASI & GAMES",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) ControlColors.textSecondary else Color.Gray,
+                letterSpacing = 1.sp
+            )
+            ControlMenuCard(
+                title = "Latihan Makhraj",
+                subtitle = "Uji pemahaman makhraj dengan kuis interaktif.",
+                icon = Icons.Default.VideogameAsset, // Menggunakan ikon game controller
+                accentColor = Color(0xFF9C27B0), // Warna Ungu agar mencolok
+                surfaceColor = surfaceColor,
+                isDark = isDark,
+                onClick = onNavigateToLatihan // Menggunakan fungsi navigasi yang baru ditambahkan
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Surface(
@@ -115,6 +134,7 @@ fun SantriControlCenterScreen(
     }
 }
 
+// ... (Sisa kode untuk ControlMenuCard dan SantriBottomBar tetap sama)
 @Composable
 private fun ControlMenuCard(title: String, subtitle: String, icon: ImageVector, accentColor: Color, surfaceColor: Color, isDark: Boolean, onClick: () -> Unit) {
     val iconBg = if (isDark) accentColor.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.1f)

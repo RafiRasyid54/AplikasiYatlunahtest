@@ -10,6 +10,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
@@ -18,9 +19,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -30,26 +33,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.yatlunah.app.R
-import com.yatlunah.app.utils.LocationHelper // Pastikan file ini sudah dibuat
-import java.util.*
 
 private object SantriColors {
-    val brandGreen     = Color(0xFF00D639)
-    val darkGreenDeep  = Color(0xFF14532D)
-    val darkGreenDim   = Color(0xFF166534)
-    val darkBackground = Color(0xFF0F0F0F)
-    val darkSurface    = Color(0xFF1A1A1A)
-    val lightBackground = Color(0xFFF4F5F7)
-    val textSecondary  = Color(0xFFA0A0A0)
+    val brandGreen      = Color(0xFF22C55E)
+    val lightGreenBg    = Color(0xFFF0FDF4)
+    val softOrange      = Color(0xFFFFF7ED)
+    val darkGreenCard   = Color(0xFF065F46)
+    val textSecondary   = Color(0xFF6B7280)
+    val darkBackground  = Color(0xFF0F172A)
+    val darkSurface     = Color(0xFF1E293B)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SantriDashboardScreen(
     userId: String,
     namaUser: String,
-    emailUser: String,
     navController: NavController,
-    onLogout: () -> Unit,
     onNavigateToJilid: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToDashboard: () -> Unit,
@@ -61,56 +61,32 @@ fun SantriDashboardScreen(
     val isDark = isSystemInDarkTheme()
     val isGuest = userId == "guest_user"
 
-    val bgColor = if (isDark) SantriColors.darkBackground else SantriColors.lightBackground
-    val surfaceColor = if (isDark) SantriColors.darkSurface else Color.White
-    val textColor = if (isDark) Color.White else Color(0xFF111111)
-    val brandGreen = SantriColors.brandGreen
+    val bgColor = if (isDark) SantriColors.darkBackground else SantriColors.lightGreenBg
+    val textColor = if (isDark) Color.White else Color(0xFF1E293B)
 
-    // State untuk nama lokasi real-time
-    var currentCity by remember { mutableStateOf("Mencari Lokasi...") }
-    val locationHelper = remember { LocationHelper(context) }
-
-    // Launcher untuk Izin Lokasi
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (granted) {
-            locationHelper.getCurrentLocation { lat, lon ->
-                viewModel.fetchPrayerAndHijri(lat, lon)
-                currentCity = "Lokasi Terdeteksi" // Bisa dikembangkan dengan Geocoder
-            }
-        } else {
-            currentCity = "Izin Lokasi Ditolak"
-            // Fallback ke Bandung jika izin ditolak
-            viewModel.fetchPrayerAndHijri(-6.9175, 107.6191)
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+            viewModel.startRealtimeUpdates(context)
         }
     }
 
-    LaunchedEffect(userId) {
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
+        viewModel.startRealtimeUpdates(context)
+        viewModel.fetchQuoteBerdasarkanHari()
         if (!isGuest) {
             viewModel.fetchStats(userId)
             viewModel.fetchStatusBimbingan(userId)
         }
-
-        // Minta izin lokasi saat aplikasi dibuka
-        permissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-        )
-
-        viewModel.fetchQuoteBerdasarkanHari()
     }
 
     Scaffold(
         containerColor = bgColor,
         bottomBar = {
+            // NAVBAR SESUAI PROGRAM ASLI
             SantriBottomBar(
-                isDark = isDark,
-                brandGreen = brandGreen,
                 onNavigateToDashboard = onNavigateToDashboard,
                 onNavigateToJilid = onNavigateToJilid,
                 onNavigateToProfile = onNavigateToProfile
@@ -123,236 +99,186 @@ fun SantriDashboardScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // 1. Info Waktu & Lokasi (Dinamis)
-            InfoWaktuLokasiSection(
-                isDark = isDark,
-                hijriDate = viewModel.hijriDate,
-                lokasi = currentCity,
-                prayerTimes = viewModel.prayerTimes
-            )
-
-            // 2. Header Greeting
+            // Header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = if (isGuest) "Ahlan wa Sahlan," else "Selamat Datang,",
+                        text = "Halo, Sahabat Cilik!",
                         fontSize = 14.sp,
-                        color = if(isDark) SantriColors.textSecondary else Color.Gray
+                        color = SantriColors.brandGreen,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text(namaUser, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = textColor)
+                    Text(
+                        text = namaUser,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textColor
+                    )
                 }
-                Icon(
-                    painter = painterResource(id = R.drawable.logo_yatlunah),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
-                    tint = brandGreen
+                Image(
+                    painter            = painterResource(id = R.drawable.yatlunahlogo),
+                    contentDescription = "Logo Yatlunah",
+                    contentScale       = ContentScale.Crop,
+                    modifier           = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp))
                 )
             }
 
-            // 3. Slider Konten Dinamis
-            KontenDinamisSlider(isDark, viewModel.currentQuote)
+            WaktuShalatBanner(
+                hijriDate = viewModel.hijriDate,
+                lokasi = viewModel.currentLocationName,
+                sholatNama = viewModel.currentShalatName,
+                sholatWaktu = viewModel.currentShalatTime
+            )
 
-            // 4. Menu Belajar Cepat
-            SectionHeader("Menu Belajar Cepat", isDark)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GameMenuCard(Modifier.weight(1f), "Mengenal Hijaiyyah", Icons.Default.Grid4x4, Color(0xFF4CAF50), isDark, onNavigateToJilid)
-                GameMenuCard(Modifier.weight(1f), "Latihan", Icons.Default.Extension, Color(0xFFFF9800), isDark, { /* Nav ke Latihan */ })
+            // Pastikan memberikan dua parameter: quote DAN source
+            KontenDinamisSlider(
+                quote = viewModel.currentQuote,
+                source = viewModel.currentSource
+            )
+
+            if (!isGuest && viewModel.bimbinganStatus.isNotEmpty()) {
+                StatusBimbinganCard(
+                    status = viewModel.bimbinganStatus,
+                    guru = viewModel.namaGuru,
+                    isDark = isDark,
+                    onClick = onNavigateToBimbingan
+                )
             }
 
-            // 5. Progress Section
+            SectionHeader("Petualangan Belajar", isDark)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuickMenuCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Program",
+                    sub = "Yuk Lihat Kelasmu",
+                    icon = Icons.Default.AutoAwesome,
+                    color = Color(0xFFF59E0B),
+                    isDark = isDark,
+                    onClick = onNavigateToInfoProgram
+                )
+                QuickMenuCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Bimbingan",
+                    sub = "Ketemu Guru",
+                    icon = Icons.Default.Face,
+                    color = Color(0xFF10B981),
+                    isDark = isDark,
+                    onClick = onNavigateToBimbingan
+                )
+            }
+
             if (isGuest) {
-                GuestWelcomeCard(brandGreen, surfaceColor, textColor, onNavigateToProfile)
+                GuestWelcomeCard(SantriColors.brandGreen, isDark, onNavigateToProfile)
             } else {
-                ProgressSection(viewModel, surfaceColor, textColor, brandGreen, isDark, onNavigateToJilid)
+                ProgressSection(viewModel, textColor, SantriColors.brandGreen, isDark, onNavigateToJilid)
             }
 
-            // 6. Kemitraan
-            SectionHeader("Kemitraan", isDark)
-            QuickMenuCard(
-                modifier = Modifier.fillMaxWidth(),
-                title = "Menjadi Mitra Lembaga",
-                sub = "Daftarkan Masjid/Lembaga Anda",
-                icon = Icons.Default.Handshake,
-                color = Color(0xFF2196F3),
-                isDark = isDark,
-                onClick = { /* Nav ke Mitra */ }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Kontak bantuan: $emailUser",
-                fontSize = 10.sp,
-                color = Color.Gray,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
+// Komponen UI Pendukung Tetap Ceria
 @Composable
-private fun InfoWaktuLokasiSection(
-    isDark: Boolean,
-    hijriDate: String,
-    lokasi: String,
-    prayerTimes: Map<String, String>
-) {
-    // Logika menampilkan jadwal sholat terdekat
-    val sholatNama = "Shubuh"
-    val sholatWaktu = prayerTimes["Fajr"] ?: "--:--"
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+private fun WaktuShalatBanner(hijriDate: String, lokasi: String, sholatNama: String, sholatWaktu: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brush.horizontalGradient(listOf(SantriColors.darkGreenCard, Color(0xFF064E3B))))
+            .padding(20.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = hijriDate.ifEmpty { "Memuat tanggal..." },
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = SantriColors.brandGreen
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(12.dp), tint = Color.Gray)
-                Spacer(Modifier.width(4.dp))
-                Text(lokasi, fontSize = 11.sp, color = Color.Gray)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(hijriDate, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34D399))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(12.dp), tint = Color.LightGray)
+                    Text(lokasi, fontSize = 11.sp, color = Color.LightGray, maxLines = 1)
+                }
             }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(sholatNama, fontSize = 11.sp, color = Color.Gray)
-            Text(
-                text = sholatWaktu,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = if(isDark) Color.White else Color.Black
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(sholatNama, fontSize = 12.sp, color = Color.White.copy(0.8f))
+                Text(sholatWaktu, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.White)
+            }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun KontenDinamisSlider(isDark: Boolean, quote: String) {
+fun KontenDinamisSlider(quote: String, source: String) {
     val pagerState = rememberPagerState(pageCount = { 3 })
+
     Column {
-        HorizontalPager(state = pagerState) { page ->
-            val (title, content, icon) = when(page) {
-                0 -> Triple("Quotes Harian", quote, Icons.Default.FormatQuote)
-                1 -> Triple("Ayat Pilihan", "Al-Baqarah: 183", Icons.AutoMirrored.Filled.MenuBook)
-                else -> Triple("Artikel Islami", "Adab Membaca Al-Qur'an", Icons.AutoMirrored.Filled.Article)
+        HorizontalPager(state = pagerState, modifier = Modifier.height(150.dp)) { page ->
+            // Menentukan konten tiap slide
+            val (title, content, quoteSource, icon, color) = when (page) {
+                0 -> Quintuple("Inspirasi Hari Ini", quote, source, Icons.Default.Stars, Color(0xFF8B5CF6))
+                1 -> Quintuple("Ayat Pilihan", "Berlomba-lombalah dalam kebaikan.", "QS. Al-Baqarah: 148", Icons.AutoMirrored.Filled.MenuBook, Color(0xFFEC4899))
+                else -> Quintuple("Tips Santri", "Adab Membaca Al-Qur'an", "Buku Adab", Icons.AutoMirrored.Filled.Article, Color(0xFF06B6D4))
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .background(
-                        brush = Brush.linearGradient(listOf(SantriColors.darkGreenDeep, SantriColors.darkGreenDim)),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .padding(16.dp)
+
+            Card(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = color)
             ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(icon, null, tint = Color.White.copy(0.7f), modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(icon, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+
+                        Text(
+                            text = "\"$content\"",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 8.dp),
+                            maxLines = 3
+                        )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(content, color = Color.White, fontSize = 13.sp, lineHeight = 18.sp)
+
+                    // Sumber ditampilkan di sini
+                    Text(
+                        text = "— $quoteSource",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Light,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
-            repeat(3) { iteration ->
-                val color = if (pagerState.currentPage == iteration) SantriColors.brandGreen else Color.LightGray
-                Box(Modifier.padding(2.dp).clip(CircleShape).background(color).size(6.dp))
-            }
-        }
-    }
-}
 
-@Composable
-private fun ProgressSection(
-    viewModel: SantriViewModel,
-    surfaceColor: Color,
-    textColor: Color,
-    brandGreen: Color,
-    isDark: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = surfaceColor),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(if (isDark) 0.dp else 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Progres Belajar", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = textColor)
-                Text("${(viewModel.progressPercent * 100).toInt()}%", color = brandGreen, fontWeight = FontWeight.Bold)
+        // Dots Indicator
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), Arrangement.Center) {
+            repeat(3) { i ->
+                val active = pagerState.currentPage == i
+                Box(
+                    Modifier
+                        .padding(2.dp)
+                        .size(if(active) 12.dp else 6.dp, 6.dp)
+                        .clip(CircleShape)
+                        .background(if(active) SantriColors.brandGreen else Color.LightGray)
+                )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            LinearProgressIndicator(
-                progress = { viewModel.progressPercent },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color = brandGreen,
-                trackColor = if(isDark) Color(0xFF2E2E2E) else Color(0xFFF0F0F0)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MiniStat(Modifier.weight(1f), viewModel.streak, "Streak", Icons.Default.Whatshot, isDark)
-                MiniStat(Modifier.weight(1f), viewModel.lastPage, viewModel.lastRead, Icons.AutoMirrored.Filled.MenuBook, isDark)
-            }
-        }
-    }
-}
-
-@Composable
-private fun GuestWelcomeCard(brandGreen: Color, surfaceColor: Color, textColor: Color, onRegister: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = surfaceColor),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, brandGreen.copy(0.3f))
-    ) {
-        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Mode Tamu Aktif", fontWeight = FontWeight.Bold, color = textColor)
-            Text(
-                text = "Daftar sekarang untuk menyimpan progres belajar dan bimbingan bersama Guru.",
-                fontSize = 12.sp, textAlign = TextAlign.Center, color = Color.Gray,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-            Button(
-                onClick = onRegister,
-                colors = ButtonDefaults.buttonColors(containerColor = brandGreen),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Daftar Sekarang", color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-private fun GameMenuCard(modifier: Modifier, title: String, icon: ImageVector, color: Color, isDark: Boolean, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.height(100.dp),
-        colors = CardDefaults.cardColors(containerColor = if(isDark) SantriColors.darkSurface else Color.White),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(32.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if(isDark) Color.White else Color.Black, textAlign = TextAlign.Center)
         }
     }
 }
@@ -361,18 +287,41 @@ private fun GameMenuCard(modifier: Modifier, title: String, icon: ImageVector, c
 private fun QuickMenuCard(modifier: Modifier, title: String, sub: String, icon: ImageVector, color: Color, isDark: Boolean, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.shadow(8.dp, RoundedCornerShape(20.dp)),
         colors = CardDefaults.cardColors(containerColor = if(isDark) SantriColors.darkSurface else Color.White),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(if(isDark) 0.dp else 2.dp)
+        shape = RoundedCornerShape(20.dp)
     ) {
-        Column(Modifier.padding(12.dp)) {
-            Box(Modifier.size(36.dp).background(color.copy(0.1f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+        Column(Modifier.padding(16.dp)) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.height(12.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = if(isDark) Color.White else Color.Black)
+            Text(sub, fontSize = 11.sp, color = SantriColors.textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun ProgressSection(viewModel: SantriViewModel, textColor: Color, brandGreen: Color, isDark: Boolean, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = if(isDark) SantriColors.darkSurface else Color.White),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text("Semangat Belajarmu! ✨", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textColor)
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(
+                progress = { viewModel.progressPercent },
+                modifier = Modifier.fillMaxWidth().height(12.dp).clip(CircleShape),
+                color = brandGreen,
+                trackColor = brandGreen.copy(0.2f)
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MiniStat(Modifier.weight(1f), "${viewModel.streak} Hari", "Rajin!", Icons.Default.Whatshot, isDark)
+                MiniStat(Modifier.weight(1f), "Hal. ${viewModel.lastPage}", viewModel.lastRead, Icons.AutoMirrored.Filled.MenuBook, isDark)
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if(isDark) Color.White else Color.Black)
-            Text(sub, fontSize = 11.sp, color = Color.Gray)
         }
     }
 }
@@ -380,16 +329,53 @@ private fun QuickMenuCard(modifier: Modifier, title: String, sub: String, icon: 
 @Composable
 private fun MiniStat(modifier: Modifier, label: String, sub: String, icon: ImageVector, isDark: Boolean) {
     Row(
-        modifier = modifier
-            .background(if(isDark) Color(0xFF242424) else Color(0xFFF9F9F9), RoundedCornerShape(12.dp))
-            .padding(10.dp),
+        modifier = modifier.background(if(isDark) Color(0xFF334155) else Color(0xFFF8FAFC), RoundedCornerShape(16.dp)).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = SantriColors.brandGreen, modifier = Modifier.size(18.dp))
-        Spacer(modifier = Modifier.width(8.dp))
+        Icon(icon, null, tint = SantriColors.brandGreen, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
         Column {
-            Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if(isDark) Color.White else Color.Black)
-            Text(sub, fontSize = 9.sp, color = Color.Gray)
+            Text(label, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if(isDark) Color.White else Color.Black)
+            Text(sub, fontSize = 10.sp, color = SantriColors.textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun StatusBimbinganCard(status: String, guru: String, isDark: Boolean, onClick: () -> Unit) {
+    val statusColor = if (status == "Aktif") Color(0xFF22C55E) else Color(0xFFF59E0B)
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = statusColor.copy(alpha = 0.15f)),
+        border = BorderStroke(1.dp, statusColor.copy(0.3f))
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(12.dp).clip(CircleShape).background(statusColor))
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("Bimbingan $status", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = if(isDark) Color.White else Color.Black)
+                Text("Pendaftar: $guru", fontSize = 12.sp, color = SantriColors.textSecondary)
+            }
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, modifier = Modifier.size(14.dp), tint = SantriColors.textSecondary)
+        }
+    }
+}
+
+@Composable
+private fun GuestWelcomeCard(brandGreen: Color, isDark: Boolean, onRegister: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = if(isDark) SantriColors.darkSurface else SantriColors.softOrange),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Ayo Bergabung! 🚀", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Simpan progres belajarmu dan dapatkan lencana keren!", fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 8.dp))
+            Button(onClick = onRegister, colors = ButtonDefaults.buttonColors(containerColor = brandGreen), shape = RoundedCornerShape(12.dp)) {
+                Text("Daftar Sekarang", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -397,17 +383,19 @@ private fun MiniStat(modifier: Modifier, label: String, sub: String, icon: Image
 @Composable
 private fun SectionHeader(title: String, isDark: Boolean) {
     Text(
-        text = title.uppercase(),
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = if (isDark) SantriColors.textSecondary else Color.Gray,
-        letterSpacing = 1.sp,
+        text = title,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Black,
+        color = if (isDark) Color.White else Color(0xFF334155),
         modifier = Modifier.padding(top = 8.dp)
     )
 }
 
+// --- NAVBAR SESUAI KODE ASLI ---
 @Composable
-private fun SantriBottomBar(isDark: Boolean, brandGreen: Color, onNavigateToDashboard: () -> Unit, onNavigateToJilid: () -> Unit, onNavigateToProfile: () -> Unit) {
+private fun SantriBottomBar(onNavigateToDashboard: () -> Unit, onNavigateToJilid: () -> Unit, onNavigateToProfile: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val brandGreen = SantriColors.brandGreen
     NavigationBar(
         containerColor = if(isDark) Color(0xFF161616) else Color.White,
         modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
@@ -433,3 +421,12 @@ private fun SantriBottomBar(isDark: Boolean, brandGreen: Color, onNavigateToDash
         )
     }
 }
+
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)// Letakkan di akhir file (paling bawah)
+data class Quintuple<A, B, C, D, E>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E
+)
