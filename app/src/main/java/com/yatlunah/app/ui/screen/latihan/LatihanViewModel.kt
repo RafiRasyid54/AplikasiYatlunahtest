@@ -1,11 +1,13 @@
 package com.yatlunah.app.ui.screen.latihan
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yatlunah.app.data.model.LatihanSoal
+import com.yatlunah.app.data.model.ProgresLatihanRequest // Pastikan model ini sudah dibuat
 import com.yatlunah.app.data.remote.RetrofitClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -26,8 +28,17 @@ class LatihanViewModel : ViewModel() {
 
     val daftarSoal = mutableStateListOf<LatihanSoal>()
 
-    // ✅ FUNGSI INI WAJIB ADA UNTUK MENARIK SOAL DARI API
+    // Variabel bantuan untuk menyimpan konteks sesi
+    private var currentJilidId: Int = 0
+    private var currentHalaman: Int = 0
+    private var userId: String = ""
+
     fun fetchSoalSesi(jilid: Int, halaman: Int, uid: String) {
+        // Simpan ke memori agar bisa digunakan saat kuis selesai
+        currentJilidId = jilid
+        currentHalaman = halaman
+        userId = uid
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = "")
             try {
@@ -59,11 +70,39 @@ class LatihanViewModel : ViewModel() {
         viewModelScope.launch {
             delay(1500)
             if (_uiState.value.currentIndex < daftarSoal.size - 1) {
-                _uiState.value = _uiState.value.copy(currentIndex = _uiState.value.currentIndex + 1, jawabanTerpilih = null)
+                _uiState.value = _uiState.value.copy(
+                    currentIndex = _uiState.value.currentIndex + 1,
+                    jawabanTerpilih = null
+                )
             } else {
                 val totalSoal = daftarSoal.size
                 val hitungSkor = if (totalSoal > 0) (_uiState.value.jawabanBenarCount.toFloat() / totalSoal * 100).toInt() else 0
+
                 _uiState.value = _uiState.value.copy(isSelesai = true, skorAkhir = hitungSkor)
+
+                // ✅ PANGGIL FUNGSI SIMPAN DI SINI
+                simpanProgresKeServer(hitungSkor)
+            }
+        }
+    }
+
+    private fun simpanProgresKeServer(skor: Int) {
+        viewModelScope.launch {
+            try {
+                val request = ProgresLatihanRequest(
+                    userId = userId,
+                    jilidId = currentJilidId,
+                    halamanLatihan = currentHalaman,
+                    skor = skor
+                )
+                val response = RetrofitClient.latihanApi.simpanProgresLatihan(request)
+                if (response.isSuccessful) {
+                    Log.d("LatihanProgres", "Data berhasil masuk ke Supabase!")
+                } else {
+                    Log.e("LatihanProgres", "Gagal menyimpan: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("LatihanProgres", "Exception: ${e.message}")
             }
         }
     }

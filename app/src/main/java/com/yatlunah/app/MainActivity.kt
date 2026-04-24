@@ -67,6 +67,7 @@ import com.yatlunah.app.data.model.LatihanSoal // Untuk tipe data LatihanSoal
 import com.yatlunah.app.ui.screen.latihan.LatihanViewModel
 import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yatlunah.app.ui.screen.admin.QuestionMonitoringScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -458,7 +459,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },
                                 onNavigateToLaporan = { /* TODO */ },
-                                onNavigateToInputLatihan = { navController.navigate("input_latihan") }, // ✅ Tambahkan ini
+                                onNavigateToInputLatihan = { navController.navigate("input_latihan") },
+                                onNavigateToMonitoring = { navController.navigate("question_monitoring") },
                                 onBack = { navController.popBackStack() }
                             )
                         }
@@ -511,6 +513,10 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 viewModel = latihanViewModel
                             )
+                        }
+
+                        composable("question_monitoring") {
+                            QuestionMonitoringScreen(onBack = { navController.popBackStack() })
                         }
 
                         composable(
