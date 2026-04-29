@@ -62,4 +62,9 @@ class AuthRepository {
     suspend fun updateUserRole(userId: String, role: String): Response<Void> {
         return apiService.updateUserRole(userId, role) // Nama fungsi apiService harus sama dengan di ApiService.kt
     }
+
+    // Di dalam class AuthRepository
+    suspend fun getAllMitra(): Response<List<Mitra>> {
+        return RetrofitClient.authApi.getAllMitra()
+    }
 }

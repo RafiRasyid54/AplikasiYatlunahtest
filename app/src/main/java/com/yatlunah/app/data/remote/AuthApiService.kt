@@ -12,9 +12,8 @@ interface AuthApiService {
     suspend fun getUserStats(@Path("id") userId: String): Response<UserStats>
 
     // --- 2. Autentikasi (Login & Register) ---
-    @POST("register")
+    @POST("auth/register") // Gunakan prefix auth/ jika sesuai backend FastAPI Anda
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
-
     @POST("login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
@@ -94,4 +93,8 @@ interface AuthApiService {
     suspend fun deleteQuote(
         @Path("id") id: Int
     ): Response<MessageResponse> // Ganti ke MessageResponse
+
+    // Di dalam interface AuthApiService
+    @GET("mitra") // Sesuaikan dengan endpoint di FastAPI Anda
+    suspend fun getAllMitra(): Response<List<Mitra>>
 }

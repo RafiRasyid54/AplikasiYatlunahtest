@@ -40,8 +40,8 @@ private object SantriColors {
     val softOrange      = Color(0xFFFFF7ED)
     val darkGreenCard   = Color(0xFF065F46)
     val textSecondary   = Color(0xFF6B7280)
-    val darkBackground  = Color(0xFF0F172A)
-    val darkSurface     = Color(0xFF1E293B)
+    val darkBackground  = Color(0xFF0F0F0F) // Dari biru dongker ke Hitam/Grey Gelap
+    val darkSurface     = Color(0xFF1A1A1A) // Dari biru dongker ke Grey Permukaan
 }
 
 @OptIn(ExperimentalFoundationApi::class)

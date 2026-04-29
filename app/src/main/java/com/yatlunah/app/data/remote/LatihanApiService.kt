@@ -27,4 +27,11 @@ interface LatihanApiService {
     @DELETE("latihan-soal/{id}")
     suspend fun deleteSoal(@Path("id") id: Int): Response<Unit>
 
+    // Tambahkan ini di dalam interface LatihanApiService Anda
+    @PUT("latihan-soal/{id}")
+    suspend fun updateSoal(
+        @Path("id") id: Int,
+        @Body soal: LatihanSoal
+    ): Response<Unit>
+
 }
