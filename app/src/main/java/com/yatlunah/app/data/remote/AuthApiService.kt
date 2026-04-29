@@ -47,7 +47,8 @@ interface AuthApiService {
     // --- 6. Admin Panel ---
     @GET("admin/users/{role}")
     suspend fun getUsersByRole(
-        @Path("role") role: String
+        @Path("role") role: String,
+        @Query("id_mitra") idMitra: String? = null
     ): Response<List<UserResponse>>
 
     @GET("admin/users/count")

@@ -17,12 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yatlunah.app.data.model.UserResponse
 import com.yatlunah.app.data.remote.RetrofitClient
+import com.yatlunah.app.data.manager.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +33,8 @@ fun UserListScreen(
     onBack: () -> Unit,
     onNavigateToDetail: (String, String, String) -> Unit
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
     // ✅ Dukungan Dark Mode
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) Color(0xFF0F0F0F) else Color(0xFFF4F5F7)
@@ -49,12 +53,13 @@ fun UserListScreen(
 
     LaunchedEffect(role) {
         try {
-            val response = RetrofitClient.authApi.getUsersByRole(role)
+            // ✅ SUPER ADMIN: Paksa kirim null agar backend mengembalikan SEMUA data
+            val response = RetrofitClient.authApi.getUsersByRole(role, null)
             if (response.isSuccessful) {
                 userList = response.body() ?: emptyList()
             }
         } catch (e: Exception) {
-            android.util.Log.e("YATLUNAH_DEBUG", "Gagal ambil list: ${e.message}")
+            android.util.Log.e("YATLUNAH_DEBUG", "Gagal ambil list admin: ${e.message}")
         } finally {
             isLoading = false
         }

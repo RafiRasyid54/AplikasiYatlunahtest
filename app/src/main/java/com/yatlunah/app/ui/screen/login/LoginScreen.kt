@@ -29,7 +29,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     onNavigateToRegister: () -> Unit,
     // ✅ Parameter 4 (role) sudah sesuai dengan MainActivity
-    onLoginSuccess: (String, String, String, String) -> Unit
+    onLoginSuccess: (String, String, String, String, String?) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -139,9 +139,9 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             if (email.isNotEmpty() && password.isNotEmpty()) {
-                                // ✅ Memanggil fungsi dengan 4 parameter dengan tepat
-                                viewModel.login(email, password) { id, nama, emailRes, role ->
-                                    onLoginSuccess(id, nama, emailRes, role)
+                                // ✅ PERBAIKAN: Ubah idMitra menjadi mitra
+                                viewModel.login(email, password) { id, nama, emailRes, role, mitra ->
+                                    onLoginSuccess(id, nama, emailRes, role, mitra) // <-- Gunakan 'mitra' di sini
                                 }
                             }
                         },

@@ -21,7 +21,6 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 // --- IMPORT MODEL ---
-import com.yatlunah.app.data.model.Setoran
 import com.yatlunah.app.ui.screen.admin.AdminControlCenterScreen
 import com.yatlunah.app.ui.screen.guru.GuruControlCenterScreen
 
@@ -57,6 +56,7 @@ import com.yatlunah.app.ui.screen.santri.SantriViewModel
 import com.yatlunah.app.ui.theme.AplikasiYatlunahtestTheme
 
 import android.widget.Toast // Untuk error 'Toast'
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope // Untuk 'rememberCoroutineScope'
 import androidx.compose.ui.platform.LocalContext // Untuk 'LocalContext'
 import kotlinx.coroutines.launch // Untuk scope.launch
@@ -65,10 +65,12 @@ import com.yatlunah.app.data.remote.RetrofitClient // Untuk 'RetrofitClient'
 import com.yatlunah.app.data.model.LatihanSoal // Untuk tipe data LatihanSoal
 
 import com.yatlunah.app.ui.screen.latihan.LatihanViewModel
-import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yatlunah.app.ui.screen.admin_mitra.AdminMitraDashboardScreen
 import com.yatlunah.app.ui.screen.admin.AdminQuestionScreen
 import com.yatlunah.app.ui.screen.admin.QuestionMonitoringScreen
+import com.yatlunah.app.data.manager.SessionManager
+import com.yatlunah.app.ui.screen.admin_mitra.MitraControlScreen
+import com.yatlunah.app.ui.screen.admin_mitra.MitraUserListScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +78,8 @@ class MainActivity : ComponentActivity() {
         setupDailyNotification()
         setContent {
             AplikasiYatlunahtestTheme {
+                val context = LocalContext.current
+                val sessionManager = remember { SessionManager(context) }
                 val navController = rememberNavController()
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -117,16 +121,26 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("login") {
+                            // 1. Inisialisasi SessionManager
+                            val context = LocalContext.current
+                            val sessionManager = remember { SessionManager(context) }
+
                             LoginScreen(
                                 onNavigateToRegister = { navController.navigate("register") },
-                                onLoginSuccess = { userId, namaUser, emailUser, role ->
+                                onLoginSuccess = { userId, namaUser, emailUser, role, idMitra ->
+
+                                    // 2. SIMPAN DATA KE SESSION MANAGER (Penting agar id_mitra tidak hilang)
+                                    sessionManager.saveSession(userId, namaUser, emailUser, role, idMitra)
+
                                     val encodedId = URLEncoder.encode(userId, "UTF-8")
                                     val encodedName = URLEncoder.encode(namaUser, "UTF-8")
                                     val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                     val cleanRole = role.lowercase().trim()
 
+                                    // 3. Tambahkan rute untuk 'adminmitra'
                                     val route = when (cleanRole) {
                                         "admin" -> "dashboard_admin/$encodedId/$encodedName/$encodedEmail/$cleanRole"
+                                        "adminmitra" -> "dashboard_admin_mitra/$encodedId/$encodedName/$encodedEmail/$cleanRole" // Rute baru
                                         "guru" -> "dashboard_guru/$encodedId/$encodedName/$encodedEmail/$cleanRole"
                                         else -> "dashboard_santri/$encodedId/$encodedName/$encodedEmail/$cleanRole"
                                     }
@@ -161,6 +175,63 @@ class MainActivity : ComponentActivity() {
                                 namaAdmin = URLDecoder.decode(name, "UTF-8"),
                                 onNavigateToUserMgmt = { navController.navigate("admin_control_center") },
                                 onNavigateToProfile = { navController.navigate("profile/$id/$name/$email/$role") }
+                            )
+                        }
+
+
+                        // Di MainActivity.kt bagian rute dashboard_admin_mitra
+                        composable("dashboard_admin_mitra/{id}/{nama}/{email}/{role}") { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val nama = backStackEntry.arguments?.getString("nama") ?: ""
+                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "adminmitra" // Ambil role-nya
+
+                            AdminMitraDashboardScreen(
+                                namaAdmin = nama,
+                                onNavigateToControl = { navController.navigate("mitra_control") },
+                                onNavigateToUserList = { r -> navController.navigate("mitra_user_list/$r") },
+                                onNavigateToProfile = {
+                                    // ✅ TAMBAHKAN $role DI AKHIR agar pas dengan rute "profile/{id}/{nama}/{email}/{role}"
+                                    navController.navigate("profile/$id/$nama/$email/$role")
+                                },
+                                onLogout = {
+                                    sessionManager.logout()
+                                    navController.navigate("login") { popUpTo(0) }
+                                }
+                            )
+                        }
+
+// Rute untuk Halaman List Khusus Mitra
+                        composable("mitra_user_list/{role}") { backStackEntry ->
+                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
+                            MitraUserListScreen(
+                                role = role,
+                                onBack = { navController.popBackStack() },
+                                onNavigateToDetail = { id, nama, email ->
+                                    navController.navigate("user_detail/$id/$nama/$email")
+                                }
+                            )
+                        }
+
+                        // Di dalam NavHost { ... }
+
+                        composable("mitra_control") {
+                            MitraControlScreen(
+                                onNavigateToUserList = { role ->
+                                    navController.navigate("mitra_user_list/$role")
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        // Rute Lama (Untuk Super Admin)
+                        composable("user_list/{role}") { backStackEntry ->
+                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
+                            UserListScreen(
+                                role = role,
+                                onBack = { navController.popBackStack() },
+                                onNavigateToDetail = { id, nama, email ->
+                                    navController.navigate("user_detail/$id/$nama/$email")
+                                }
                             )
                         }
 
@@ -317,9 +388,11 @@ class MainActivity : ComponentActivity() {
                                 userIdAsli = id, namaUser = URLDecoder.decode(n, "UTF-8"),
                                 emailUser = URLDecoder.decode(e, "UTF-8"), role = r,
                                 onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
+                                // Di dalam rute profile/{id}/{nama}/{email}/{role} yang Anda kirim:
                                 onNavigateToHome = {
                                     when (r) {
                                         "admin" -> navController.navigate("dashboard_admin/$id/$n/$e/$r") { popUpTo(0) }
+                                        "adminmitra" -> navController.navigate("dashboard_admin_mitra/$id/$n/$e/$r") { popUpTo(0) } // ✅ Tambahkan ini
                                         "guru" -> navController.navigate("dashboard_guru/$id/$n/$e/$r") { popUpTo(0) }
                                         else -> navController.navigate("dashboard_santri/$id/$n/$e/$r") { popUpTo(0) }
                                     }
