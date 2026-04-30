@@ -1,7 +1,6 @@
 package com.yatlunah.app.data.remote
 
 import com.yatlunah.app.data.model.LatihanSoal
-import com.yatlunah.app.data.model.ProgresLatihanRequest
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -17,14 +16,4 @@ interface LatihanApiService {
         @Query("jilid") jilid: Int,
         @Query("halaman") halaman: Int
     ): Response<List<LatihanSoal>> // Mengembalikan List agar bisa menampung banyak soal di satu halaman
-
-    @POST("latihan-soal/progres")
-    suspend fun simpanProgresLatihan(@Body request: ProgresLatihanRequest): Response<Unit>
-
-    @GET("latihan-soal/all")
-    suspend fun getAllSoal(): Response<List<LatihanSoal>>
-
-    @DELETE("latihan-soal/{id}")
-    suspend fun deleteSoal(@Path("id") id: Int): Response<Unit>
-
 }
