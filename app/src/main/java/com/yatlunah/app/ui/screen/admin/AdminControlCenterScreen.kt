@@ -10,7 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Assignment // Icon baru untuk Latihan
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
@@ -29,7 +29,7 @@ fun AdminControlCenterScreen(
     onNavigateToUserMgmt: () -> Unit,
     onNavigateToQuotes: () -> Unit,
     onNavigateToLaporan: () -> Unit,
-    onNavigateToQuestions: () -> Unit, // ✅ Disatukan menjadi satu parameter
+    onNavigateToInputLatihan: () -> Unit, // ✅ Tambahkan parameter navigasi baru
     onBack: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
@@ -59,9 +59,8 @@ fun AdminControlCenterScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = surfaceColor,
-                    titleContentColor = titleColor
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = surfaceColor
                 )
             )
         }
@@ -80,15 +79,15 @@ fun AdminControlCenterScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // 2. Kelola Latihan Soal (Gabungan Mapping & Monitoring) ✅
+            // 2. Mapping Latihan Soal (Menu Baru)
             AdminHubCard(
-                title = "Kelola Latihan Soal",
-                desc = "Input, edit, & monitoring bank soal latihan.",
+                title = "Mapping Latihan Soal",
+                desc = "Input bank soal & mapping ke halaman PDF.",
                 icon = Icons.Default.Assignment,
-                accentColor = Color(0xFF00D639), // Hijau Brand
+                accentColor = Color(0xFFD97706), // Warna Amber untuk membedakan
                 surfaceColor = surfaceColor,
                 isDark = isDark,
-                onClick = onNavigateToQuestions
+                onClick = onNavigateToInputLatihan
             )
 
             Spacer(Modifier.height(12.dp))
