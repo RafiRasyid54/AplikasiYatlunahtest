@@ -67,6 +67,8 @@ import com.yatlunah.app.data.model.LatihanSoal // Untuk tipe data LatihanSoal
 import com.yatlunah.app.ui.screen.latihan.LatihanViewModel
 import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yatlunah.app.ui.screen.admin.AdminQuestionScreen
+import com.yatlunah.app.ui.screen.admin.QuestionMonitoringScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -453,12 +455,21 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Di dalam NavHost pada MainActivity.kt
+                        // Di dalam NavHost pada MainActivity.kt
                         composable("admin_control_center") {
                             AdminControlCenterScreen(
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },
                                 onNavigateToLaporan = { /* TODO */ },
-                                onNavigateToInputLatihan = { navController.navigate("input_latihan") }, // ✅ Tambahkan ini
+                                // PERBAIKAN: Gunakan parameter tunggal onNavigateToQuestions
+                                onNavigateToQuestions = { navController.navigate("admin_questions") },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+// 2. Tambahkan rute AdminQuestionScreen (Gabungan Input & Monitoring)
+                        composable("admin_questions") {
+                            AdminQuestionScreen(
                                 onBack = { navController.popBackStack() }
                             )
                         }
@@ -511,6 +522,10 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 viewModel = latihanViewModel
                             )
+                        }
+
+                        composable("question_monitoring") {
+                            QuestionMonitoringScreen(onBack = { navController.popBackStack() })
                         }
 
                         composable(

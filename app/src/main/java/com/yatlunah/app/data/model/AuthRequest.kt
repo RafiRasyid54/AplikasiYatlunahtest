@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 data class RegisterRequest(
     val nama_lengkap: String,
     val email: String,
-    val password: String,
+    val password: String
 )
 
 data class LoginRequest(
