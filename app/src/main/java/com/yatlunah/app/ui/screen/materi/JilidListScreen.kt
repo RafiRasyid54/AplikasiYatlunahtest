@@ -1,5 +1,6 @@
 package com.yatlunah.app.ui.screen.materi
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -17,12 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yatlunah.app.data.model.JilidData
-import com.yatlunah.app.ui.screen.materi.JilidViewModel
 
 // ─────────────────────────────────────────────
 // Token Warna Konsisten
@@ -42,6 +43,9 @@ fun JilidListScreen(
     onNavigateToDetail: (Int) -> Unit,
     onNavigateToHome: () -> Unit
 ) {
+    // Definisi context agar Toast bisa berjalan
+    val context = LocalContext.current
+
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) JilidColors.darkBackground else JilidColors.lightBackground
     val surfaceColor = if (isDark) JilidColors.darkSurface else Color.White
@@ -109,9 +113,12 @@ fun JilidListScreen(
                     isDark = isDark,
                     onClick = { onNavigateToDetail(jilid.nomorJilid) },
                     onDownloadClick = {
-                        if (!jilid.isDownloaded) {
-                            viewModel.downloadJilid(jilid)
-                        }
+                        // Feedback Toast menggunakan context yang sudah didefinisikan
+                        Toast.makeText(
+                            context,
+                            "Fitur download jilid ${jilid.nomorJilid} segera hadir",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 )
             }
@@ -185,7 +192,7 @@ fun JilidCard(
                 }
             }
 
-            // Download/Success Icon
+            // Tombol Download
             IconButton(
                 onClick = onDownloadClick,
                 colors = IconButtonDefaults.iconButtonColors(
@@ -194,7 +201,7 @@ fun JilidCard(
             ) {
                 Icon(
                     imageVector = if (jilid.isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
-                    contentDescription = null,
+                    contentDescription = "Download Icon",
                     modifier = Modifier.size(24.dp)
                 )
             }
