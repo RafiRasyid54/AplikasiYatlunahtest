@@ -4,6 +4,9 @@ import com.google.gson.annotations.SerializedName
 import com.yatlunah.app.data.model.JilidData
 import com.yatlunah.app.data.model.QuotesHarian
 import com.yatlunah.app.data.model.Setoran
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -15,13 +18,25 @@ interface MateriApiService {
     @POST("progress")
     suspend fun updateProgressToDatabase(
         @Body request: ProgressRequest
-    ): ProgressResponse // ✅ Mengembalikan ProgressResponse
+    ): ProgressResponse
 
     @GET("audio/mapping/{jilid_id}/{page}")
     suspend fun getAudioUrl(
         @Path("jilid_id") jilidId: Int,
         @Path("page") halaman: Int
     ): AudioResponse
+
+    // --- FITUR SETORAN ---
+
+    // Fungsi untuk mengunggah rekaman audio (Multipart) agar tersimpan ke database
+    @Multipart
+    @POST("setoran/upload")
+    suspend fun uploadSetoran(
+        @Part file: MultipartBody.Part,
+        @Part("user_id") userId: RequestBody,
+        @Part("jilid") jilid: RequestBody,
+        @Part("halaman") halaman: RequestBody
+    ): Response<ResponseBody>
 
     @POST("setoran/tambah")
     suspend fun tambahSetoran(@Body request: SetoranRequest): Response<Unit>
@@ -30,8 +45,10 @@ interface MateriApiService {
     suspend fun getAntreanSetoran(
         @Path("jilid_id") jilidId: Int
     ): Response<List<Setoran>>
+
     @POST("setoran/nilai")
-    suspend fun updateNilaiSetoran( @Body request: PenilaianRequest
+    suspend fun updateNilaiSetoran(
+        @Body request: PenilaianRequest
     ): Response<Unit>
 
     @GET("users/{user_id}/riwayat")
@@ -44,7 +61,6 @@ interface MateriApiService {
     @POST("admin/quotes")
     suspend fun tambahQuote(@Body quote: QuotesHarian): Response<Unit>
 
-    // ✅ UBAH: dari "materi/quotes" menjadi "admin/quotes"
     @GET("admin/quotes")
     suspend fun getAllQuotes(): Response<List<QuotesHarian>>
 
@@ -59,13 +75,12 @@ interface MateriApiService {
         @Body quote: QuotesHarian
     ): Response<Unit>
 
-    // ✅ TAMBAHKAN: Jika butuh fitur delete di Android
     @DELETE("admin/quotes/{id}")
     suspend fun deleteQuote(@Path("id") id: Int): Response<Unit>
 }
 
 
-// --- DATA MODELS (Pastikan semua ini ada di bawah interface) ---
+// --- DATA MODELS ---
 
 data class ProgressRequest(
     @SerializedName("user_id") val userId: String,
@@ -74,8 +89,9 @@ data class ProgressRequest(
 )
 
 data class ProgressResponse(
-    val status: String // ✅ Ini yang dicari oleh Repository
+    val status: String
 )
+
 data class SetoranRequest(
     @SerializedName("user_id")
     val userId: String,
@@ -95,10 +111,9 @@ data class AudioResponse(
     @SerializedName("judul_materi") val judulMateri: String?
 )
 
-// Update data class untuk kirim nilai
 data class PenilaianRequest(
     @SerializedName("setoran_id") val setoranId: Int,
     @SerializedName("nilai") val nilai: Int,
     @SerializedName("catatan") val catatan: String,
-    @SerializedName("id_guru_penilai") val idGuru: String // ✅ Tambahkan ini agar masuk ke DB
+    @SerializedName("id_guru_penilai") val idGuru: String
 )
