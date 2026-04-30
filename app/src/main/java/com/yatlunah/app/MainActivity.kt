@@ -67,7 +67,6 @@ import com.yatlunah.app.data.model.LatihanSoal // Untuk tipe data LatihanSoal
 import com.yatlunah.app.ui.screen.latihan.LatihanViewModel
 import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yatlunah.app.ui.screen.admin.AdminQuestionScreen
 import com.yatlunah.app.ui.screen.admin.QuestionMonitoringScreen
 
 class MainActivity : ComponentActivity() {
@@ -455,21 +454,13 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Di dalam NavHost pada MainActivity.kt
-                        // Di dalam NavHost pada MainActivity.kt
                         composable("admin_control_center") {
                             AdminControlCenterScreen(
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },
                                 onNavigateToLaporan = { /* TODO */ },
-                                // PERBAIKAN: Gunakan parameter tunggal onNavigateToQuestions
-                                onNavigateToQuestions = { navController.navigate("admin_questions") },
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
-
-// 2. Tambahkan rute AdminQuestionScreen (Gabungan Input & Monitoring)
-                        composable("admin_questions") {
-                            AdminQuestionScreen(
+                                onNavigateToInputLatihan = { navController.navigate("input_latihan") },
+                                onNavigateToMonitoring = { navController.navigate("question_monitoring") },
                                 onBack = { navController.popBackStack() }
                             )
                         }
