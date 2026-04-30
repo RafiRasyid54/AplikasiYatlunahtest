@@ -38,10 +38,12 @@ import com.yatlunah.app.data.model.LatihanSoal
 import com.yatlunah.app.data.model.Setoran
 import com.yatlunah.app.data.remote.RetrofitClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URL
 
 private object ViewerColors {
     val brandGreen     = Color(0xFF00D639)
@@ -75,13 +77,14 @@ fun PdfJilidViewerScreen(
 
     var isRecordMode by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
-    var repetitionCount by remember { mutableIntStateOf(0) }
+    var audioFile by remember { mutableStateOf<File?>(null) }
 
     var daftarSoalAktif by remember { mutableStateOf<List<LatihanSoal>>(emptyList()) }
     var listSetoranHalaman by remember { mutableStateOf<List<Setoran>>(emptyList()) }
     var showFeedbackSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
+    // 1. Inisialisasi PDF
     LaunchedEffect(jilidId, listJilid) {
         if (listJilid.isEmpty()) return@LaunchedEffect
         withContext(Dispatchers.IO) {
@@ -90,12 +93,12 @@ fun PdfJilidViewerScreen(
                 val currentJilid = listJilid.find { it.nomorJilid == jilidId }
                 val pdfUrl = currentJilid?.pdfUrl
                 if (pdfUrl.isNullOrEmpty()) {
-                    errorMessage = "URL tidak ditemukan"
+                    errorMessage = "URL PDF tidak ditemukan"
                     return@withContext
                 }
                 val tempFile = File(context.cacheDir, "jilid_$jilidId.pdf")
                 if (!tempFile.exists() || tempFile.length() == 0L) {
-                    java.net.URL(pdfUrl).openStream().use { input ->
+                    URL(pdfUrl).openStream().use { input ->
                         FileOutputStream(tempFile).use { output -> input.copyTo(output) }
                     }
                 }
@@ -112,12 +115,17 @@ fun PdfJilidViewerScreen(
 
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    // Mengambil data Soal dan Setoran (Komentar) dari Database
-    LaunchedEffect(pagerState.currentPage, isLoading) {
-        if (isLoading) return@LaunchedEffect
-        val currentHalaman = pagerState.currentPage + 1
-        repetitionCount = 0
+    // 2. OTOMATIS GANTI AUDIO SAAT HALAMAN DIGESER (Logika Diperbaiki)
+    LaunchedEffect(pagerState.currentPage, pageCount) {
+        // Jangan proses apapun jika PDF belum selesai dimuat
+        if (pageCount == 0) return@LaunchedEffect
 
+        val currentHalaman = pagerState.currentPage + 1
+
+        // Jeda sebentar agar transisi halaman mulus
+        delay(200)
+
+        // Panggil fungsi ViewModel untuk menyiapkan audio di halaman tersebut
         viewModel.prepareAudioForPage(context, jilidId, currentHalaman)
 
         scope.launch {
@@ -125,14 +133,10 @@ fun PdfJilidViewerScreen(
                 val resSoal = RetrofitClient.latihanApi.getSoalByMapping(jilidId, currentHalaman)
                 daftarSoalAktif = if (resSoal.isSuccessful) resSoal.body() ?: emptyList() else emptyList()
 
-                // Mengambil data setoran asli dari tabel database
                 val resSetoran = RetrofitClient.materiApi.getRiwayatSetoran(userId)
                 if (resSetoran.isSuccessful) {
-                    listSetoranHalaman = resSetoran.body()?.filter { s: Setoran ->
-                        // Filter berdasarkan jilid, halaman, dan status sudah dinilai
-                        s.jilid == jilidId &&
-                                s.halaman == currentHalaman &&
-                                s.status == "dinilai"
+                    listSetoranHalaman = resSetoran.body()?.filter { s ->
+                        s.jilid == jilidId && s.halaman == currentHalaman && s.status == "dinilai"
                     } ?: emptyList()
                 }
             } catch (e: Exception) {
@@ -152,8 +156,13 @@ fun PdfJilidViewerScreen(
                         Text("Halaman ${pagerState.currentPage + 1} / $pageCount", fontSize = 11.sp, color = Color.LightGray)
                     }
                 },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White) } },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                navigationIcon = {
+                    IconButton(onClick = {
+                        viewModel.stopAudio()
+                        onBack()
+                    }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black.copy(alpha = 0.7f),
                     titleContentColor = Color.White
                 )
@@ -192,12 +201,6 @@ fun PdfJilidViewerScreen(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (isRecordMode) {
-                        RepetitionIndicator(count = repetitionCount, max = 5)
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    // Button Latihan tetap muncul, warna abu jika tidak ada soal
                     ActionButtonsRow(
                         isRecordMode = isRecordMode,
                         isPlaying = isPlaying,
@@ -206,31 +209,61 @@ fun PdfJilidViewerScreen(
                         onToggleAudio = { viewModel.toggleAudio() },
                         onToggleRecord = {
                             isRecordMode = !isRecordMode
-                            if (isRecordMode) viewModel.stopAudio()
+                            if (isRecordMode) {
+                                viewModel.stopAudio()
+                                audioFile = null
+                            }
                         },
                         onShowFeedback = { showFeedbackSheet = true },
                         onGoToLatihan = {
                             if (daftarSoalAktif.isNotEmpty()) onNavigateToLatihan(jilidId, pagerState.currentPage + 1)
-                            else Toast.makeText(context, "Latihan belum tersedia untuk halaman ini", Toast.LENGTH_SHORT).show()
+                            else Toast.makeText(context, "Latihan belum tersedia", Toast.LENGTH_SHORT).show()
                         }
                     )
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     AnimatedVisibility(visible = isRecordMode, enter = slideInVertically { it } + fadeIn()) {
                         RecordPanel(
                             isRecording = isRecording,
-                            repetitionCount = repetitionCount,
+                            hasRecording = audioFile != null,
                             surfaceColor = surfaceColor,
                             textColor = textColor,
                             onRecordClick = {
-                                isRecording = !isRecording
-                                if (!isRecording && repetitionCount < 5) repetitionCount++
+                                if (!isRecording) {
+                                    isRecording = true
+                                    audioFile = null
+                                    viewModel.startRecording(context)
+                                } else {
+                                    isRecording = false
+                                    audioFile = viewModel.stopRecording()
+                                }
                             },
                             onSend = {
-                                Toast.makeText(context, "Setoran dikirim!", Toast.LENGTH_SHORT).show()
-                                isRecordMode = false
-                                repetitionCount = 0
+                                scope.launch {
+                                    if (audioFile != null) {
+                                        val success = viewModel.uploadSetoran(
+                                            userId = userId,
+                                            jilid = jilidId,
+                                            halaman = pagerState.currentPage + 1,
+                                            audioFile = audioFile!!
+                                        )
+                                        if (success) {
+                                            Toast.makeText(context, "Setoran Berhasil!", Toast.LENGTH_SHORT).show()
+                                            isRecordMode = false
+                                            audioFile = null
+                                        } else {
+                                            Toast.makeText(context, "Gagal simpan ke database", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
                             },
-                            onCancel = { isRecordMode = false; repetitionCount = 0 }
+                            onCancel = {
+                                isRecordMode = false
+                                isRecording = false
+                                audioFile = null
+                                viewModel.cancelRecording()
+                            }
                         )
                     }
                 }
@@ -249,6 +282,10 @@ fun PdfJilidViewerScreen(
                 )
             }
         }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.stopAudio() }
     }
 }
 
@@ -276,11 +313,9 @@ fun ActionButtonsRow(
         IconButton(onClick = onToggleRecord) {
             Icon(Icons.Default.Mic, null, tint = if (isRecordMode) Color.Red else Color.White)
         }
-        // Tombol Komentar (Berwarna hijau jika ada feedback di database)
         IconButton(onClick = onShowFeedback) {
             Icon(Icons.AutoMirrored.Filled.Comment, null, tint = if (hasFeedback) ViewerColors.brandGreen else Color.Gray)
         }
-        // Tombol Latihan (Abu-abu jika tidak ada mapping soal di database)
         Button(
             onClick = onGoToLatihan,
             colors = ButtonDefaults.buttonColors(
@@ -296,6 +331,47 @@ fun ActionButtonsRow(
 }
 
 @Composable
+fun RecordPanel(
+    isRecording: Boolean,
+    hasRecording: Boolean,
+    surfaceColor: Color,
+    textColor: Color,
+    onRecordClick: () -> Unit,
+    onSend: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = surfaceColor),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(0.9f)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onCancel) { Icon(Icons.Default.Close, null, tint = Color.Gray) }
+
+            Text(
+                text = if (isRecording) "Sedang Merekam..." else if (hasRecording) "Siap Kirim" else "Tekan Mic",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+
+            if (hasRecording && !isRecording) {
+                IconButton(
+                    onClick = onSend,
+                    modifier = Modifier.background(ViewerColors.brandGreen, CircleShape)
+                ) { Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White) }
+            } else {
+                IconButton(
+                    onClick = onRecordClick,
+                    modifier = Modifier.background(if (isRecording) Color.Red else ViewerColors.brandGreen, CircleShape)
+                ) { Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, null, tint = Color.White) }
+            }
+        }
+    }
+}
+
+@Composable
 fun FeedbackListContent(halaman: Int, listSetoran: List<Setoran>) {
     Column(modifier = Modifier.padding(24.dp).fillMaxHeight(0.6f)) {
         Text("Komentar Hal $halaman", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -304,7 +380,7 @@ fun FeedbackListContent(halaman: Int, listSetoran: List<Setoran>) {
             Text("Belum ada feedback dari database.", color = Color.Gray)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(listSetoran) { s: Setoran ->
+                items(listSetoran) { s ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.Gray.copy(0.1f))
@@ -315,35 +391,10 @@ fun FeedbackListContent(halaman: Int, listSetoran: List<Setoran>) {
                                 Text(s.createdAt.take(10), fontSize = 10.sp, color = Color.Gray)
                             }
                             Spacer(Modifier.height(4.dp))
-                            // Mengambil properti 'catatan' sesuai model Setoran.kt Anda
                             Text(s.catatan ?: "Tidak ada catatan.", fontSize = 13.sp)
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun RepetitionIndicator(count: Int, max: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(max) { index ->
-            Box(modifier = Modifier.size(32.dp, 6.dp).clip(CircleShape).background(if (index < count) ViewerColors.brandGreen else Color.White.copy(0.3f)))
-        }
-    }
-}
-
-@Composable
-fun RecordPanel(isRecording: Boolean, repetitionCount: Int, surfaceColor: Color, textColor: Color, onRecordClick: () -> Unit, onSend: () -> Unit, onCancel: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = surfaceColor), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(0.9f)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onCancel) { Icon(Icons.Default.Close, null, tint = Color.Gray) }
-            Text(text = if (repetitionCount < 5) "Baris ${repetitionCount + 1}" else "Siap Kirim", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = textColor)
-            if (repetitionCount >= 5) {
-                IconButton(onClick = onSend, modifier = Modifier.background(ViewerColors.brandGreen, CircleShape)) { Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White) }
-            } else {
-                IconButton(onClick = onRecordClick, modifier = Modifier.background(if (isRecording) Color.Red else ViewerColors.brandGreen, CircleShape)) { Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, null, tint = Color.White) }
             }
         }
     }

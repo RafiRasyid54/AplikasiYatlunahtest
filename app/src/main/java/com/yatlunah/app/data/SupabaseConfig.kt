@@ -4,8 +4,8 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.storage.Storage
 
 object SupabaseConfig {
-    const val PROJECT_URL = "https://ecueyemrcmaelxwqhbbo.supabase.co"
-    const val ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjdWV5ZW1yY21hZWx4d3FoYmJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzMyNDMsImV4cCI6MjA4ODc0OTI0M30.9I1GbaCWGgLeUSuyyufyy85h1ASB4KYrpsVYDfhbEMs"
+    const val PROJECT_URL = "https://opmmcdsffhesnlolkcfa.supabase.co"
+    const val ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wbW1jZHNmZmhlc25sb2xrY2ZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTk0NDAsImV4cCI6MjA5MTMzNTQ0MH0.P-7FgZazo0ht4ONGIGhDJ62G7rVF9McFugFHXVjVxj0"
 
     val bucketName = "setoran_audio"
     val client = createSupabaseClient(
