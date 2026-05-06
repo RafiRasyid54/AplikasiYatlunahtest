@@ -22,6 +22,10 @@ class AuthRepository {
         apiService.getUserStats(userId)
     }
 
+
+    suspend fun getUsersByRole(role: String, idMitra: String? = null): Response<List<UserResponse>> {
+        return apiService.getUsersByRole(role, idMitra)
+    }
     suspend fun updateName(userId: String, request: UserNameUpdate) =
         apiService.updateName(userId, request)
 
@@ -37,8 +41,6 @@ class AuthRepository {
     suspend fun getUsersByRole(role: String): Response<List<UserResponse>> {
         return apiService.getUsersByRole(role)
     }
-
-// DI DALAM AuthRepository.kt
 
     suspend fun addQuote(teks: String, sumber: String): Response<AuthResponse> {
         // SALAH (seperti kodinganmu sekarang):

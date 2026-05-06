@@ -14,35 +14,29 @@ class LoginViewModel : ViewModel() {
     var loginStatus by mutableStateOf("")
     var isLoading by mutableStateOf(false)
 
-    fun login(email: String, pass: String, onSuccess: (String, String, String, String) -> Unit) {
+    fun login(email: String, pass: String, onSuccess: (String, String, String, String, String?) -> Unit) {
         viewModelScope.launch {
             isLoading = true
             try {
                 val response = repository.login(LoginRequest(email, pass))
-
-                Log.d("YATLUNAH_DEBUG", "Response: ${response.body()}")
-
                 if (response.isSuccessful) {
                     val body = response.body()
 
-                    // ✅ Ambil data lengkap termasuk role dari backend FastAPI
                     val userId = body?.userId ?: ""
-                    val name = body?.nama_lengkap ?: "User Yatlunah"
+                    val name = body?.nama_lengkap ?: "User"
                     val userEmail = body?.email ?: email
-                    val userRole = body?.role ?: "peserta" // ✅ Ambil role dari body response
+                    val userRole = body?.role ?: "santri"
+                    val idMitra = body?.idMitra // ✅ Ambil idMitra dari AuthResponse
 
                     loginStatus = "Selamat datang, $name!"
 
-                    // ✅ KIRIM KEEMPAT DATA ke LoginScreen -> MainActivity
-                    onSuccess(userId, name, userEmail, userRole)
+                    // ✅ Tambahkan parameter kelima (idMitra) ke callback
+                    onSuccess(userId, name, userEmail, userRole, idMitra)
                 } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Kesalahan tidak diketahui"
                     loginStatus = "Gagal: Email atau Password salah"
-                    Log.e("YATLUNAH_DEBUG", "Error Login: $errorMsg")
                 }
             } catch (e: Exception) {
                 loginStatus = "Koneksi Gagal: ${e.message}"
-                Log.e("YATLUNAH_DEBUG", "Exception: ${e.message}")
             } finally {
                 isLoading = false
             }

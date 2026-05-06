@@ -88,6 +88,7 @@ fun ProfileScreen(
     val roleLabel = when (role.lowercase()) {
         "admin" -> "Administrator"
         "guru"  -> "Guru Pembimbing"
+        "adminmitra" -> "Admin Lembaga / Mitra"
         else    -> "Peserta Yatlunah"
     }
 
@@ -255,7 +256,7 @@ private fun ProfileBottomBar(
             onClick = onNavigateToJilid,
             icon = {
                 val icon = when(role.lowercase()) {
-                    "admin" -> Icons.AutoMirrored.Filled.List
+                    "admin", "adminmitra" -> Icons.AutoMirrored.Filled.List
                     "guru"  -> Icons.Default.FactCheck // ✅ Ikon untuk guru
                     else    -> Icons.AutoMirrored.Filled.MenuBook // ✅ Menggunakan AutoMirrored
                 }
