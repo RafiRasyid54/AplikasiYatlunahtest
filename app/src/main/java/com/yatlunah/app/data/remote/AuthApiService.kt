@@ -61,6 +61,13 @@ interface AuthApiService {
         @Query("new_role") role: String
     ): Response<AuthResponse>
 
+    // Di dalam interface AuthApiService
+    @PUT("admin/users/{user_id}/assign-guru")
+    suspend fun assignGuru(
+        @Path("user_id") userId: String,
+        @Query("id_guru") idGuru: String
+    ): Response<AuthResponse>
+
     // PERBAIKAN: Gunakan @Query agar sesuai dengan FastAPI
 
     @FormUrlEncoded

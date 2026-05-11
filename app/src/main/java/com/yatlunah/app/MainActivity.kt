@@ -248,15 +248,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         // Mitra Flow
-                        // --- MITRA FLOW ---
-
-                        // 1. Dashboard Mitra
-                        // --- MITRA FLOW ---
-
-// 1. Dashboard Mitra
-                        // --- MITRA FLOW ---
-
-// 1. Dashboard Mitra
                         composable(
                             route = "dashboard_mitra/{id}/{nama}/{email}/{role}/{idMitra}",
                             arguments = listOf(
@@ -268,53 +259,37 @@ class MainActivity : ComponentActivity() {
                             )
                         ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
-                            val name = backStackEntry.arguments?.getString("nama") ?: ""
-                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val name = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
+                            val email = URLDecoder.decode(backStackEntry.arguments?.getString("email") ?: "", "UTF-8")
                             val role = backStackEntry.arguments?.getString("role") ?: "mitra"
-                            // idMitra tetap ditangkap dari URL login, tapi tidak diteruskan ke screen lain
-                            // karena screen lain mengambilnya mandiri lewat SessionManager
-
                             AdminMitraDashboardScreen(
-                                namaAdmin = java.net.URLDecoder.decode(name, "UTF-8"),
-                                onNavigateToControl = {
-                                    navController.navigate("mitra_control") // ✅ Rute disesuaikan, tanpa idMitra
-                                },
-                                onNavigateToUserList = { targetRole ->
-                                    navController.navigate("mitra_user_list/$targetRole") // ✅ Rute disesuaikan, tanpa idMitra
-                                },
-                                onNavigateToProfile = {
-                                    navController.navigate("profile/$id/$name/$email/$role")
-                                },
-                                onLogout = {
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                }
+                                namaAdmin = name,
+                                onNavigateToControl = { navController.navigate("mitra_control") },
+                                onNavigateToUserList = { targetRole -> navController.navigate("mitra_user_list/$targetRole") },
+                                onNavigateToProfile = { navController.navigate("profile/$id/${URLEncoder.encode(name, "UTF-8")}/${URLEncoder.encode(email, "UTF-8")}/$role") },
+                                onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } }
                             )
                         }
 
-// 2. Control Screen Mitra
-                        composable("mitra_control") { // ✅ Rute disesuaikan
+                        composable("mitra_control") {
                             MitraControlScreen(
-                                // Asumsi: MitraControlScreen tidak memiliki parameter idMitra dan mengambilnya dari SessionManager
-                                onNavigateToUserList = { targetRole ->
-                                    navController.navigate("mitra_user_list/$targetRole")
-                                },
+                                onNavigateToUserList = { targetRole -> navController.navigate("mitra_user_list/$targetRole") },
                                 onBack = { navController.popBackStack() }
                             )
                         }
 
-// 3. User List Mitra
-                        composable("mitra_user_list/{role}") { backStackEntry -> // ✅ Rute disesuaikan
-                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
-
+                        composable("mitra_user_list/{role}") { backStackEntry ->
+                            val currentRole = backStackEntry.arguments?.getString("role") ?: "santri"
                             MitraUserListScreen(
-                                role = role, // ✅ Parameter idMitra dihapus karena diambil dari SessionManager
+                                role = currentRole,
                                 onBack = { navController.popBackStack() },
                                 onNavigateToDetail = { userId, n, e ->
-                                    val en = java.net.URLEncoder.encode(n, "UTF-8")
-                                    val ee = java.net.URLEncoder.encode(e, "UTF-8")
-                                    navController.navigate("user_detail/$userId/$en/$ee/$role")
+                                    val safeId = if (userId.isNullOrEmpty()) "0" else userId
+                                    val en = URLEncoder.encode(n ?: "User", "UTF-8")
+                                    val ee = URLEncoder.encode(e ?: "", "UTF-8")
+
+                                    // Pastikan currentRole diteruskan ke user_detail
+                                    navController.navigate("user_detail/$safeId/$en/$ee/$currentRole")
                                 }
                             )
                         }
@@ -513,29 +488,49 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+
                         composable("user_list/{role}") { backStackEntry ->
                             val r = backStackEntry.arguments?.getString("role") ?: "santri"
                             UserListScreen(
                                 role = r,
                                 onBack = { navController.popBackStack() },
-                                onNavigateToDetail = { id, n, e ->
-                                    val en = URLEncoder.encode(n, "UTF-8")
-                                    val ee = URLEncoder.encode(e, "UTF-8")
-                                    navController.navigate("user_detail/$id/$en/$ee/$r")
+                                onNavigateToDetail = { id, nama, email ->
+                                    // Gunakan elvis operator (?:) untuk menjamin parameter tidak null saat masuk ke route
+                                    val finalId = id ?: "unknown"
+                                    val finalNama = URLEncoder.encode(nama ?: "User", "UTF-8")
+                                    val finalEmail = URLEncoder.encode(email ?: "", "UTF-8")
+
+                                    navController.navigate("user_detail/$finalId/$finalNama/$finalEmail/$r")
                                 }
                             )
                         }
 
-                        composable("user_detail/{id}/{nama}/{email}/{role}") { backStackEntry ->
+                        composable(
+                            route = "user_detail/{id}/{nama}/{email}/{role}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType }, // UUID ditangkap sebagai String
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
                             val id = backStackEntry.arguments?.getString("id") ?: ""
-                            val n = URLDecoder.decode(backStackEntry.arguments?.getString("nama") ?: "", "UTF-8")
-                            val e = URLDecoder.decode(backStackEntry.arguments?.getString("email") ?: "", "UTF-8")
-                            val r = backStackEntry.arguments?.getString("role") ?: "santri"
-                            UserDetailScreen(userId = id, userName = n, userEmail = e, initialRole = r, onBack = { navController.popBackStack() })
-                        }
+                            val rawNama = backStackEntry.arguments?.getString("nama") ?: ""
+                            val rawEmail = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
 
-                        // Di dalam NavHost pada MainActivity.kt
-                        // Di dalam NavHost pada MainActivity.kt
+                            // Decoding aman agar tidak crash jika ada karakter @ atau spasi
+                            val decodedNama = try { URLDecoder.decode(rawNama, "UTF-8") } catch (e: Exception) { rawNama }
+                            val decodedEmail = try { URLDecoder.decode(rawEmail, "UTF-8") } catch (e: Exception) { rawEmail }
+
+                            UserDetailScreen(
+                                userId = id,
+                                userName = decodedNama,
+                                userEmail = decodedEmail,
+                                initialRole = role,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
                         composable("admin_control_center") {
                             AdminControlCenterScreen(
                                 onNavigateToUserMgmt = { navController.navigate("user_management") },

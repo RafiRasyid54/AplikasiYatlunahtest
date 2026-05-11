@@ -38,10 +38,20 @@ data class AuthResponse(
 )
 
 data class UserResponse(
-    @SerializedName("user_id") val userId: String,
-    @SerializedName("nama_lengkap") val nama_lengkap: String,
-    @SerializedName("email") val email: String,
-    @SerializedName("role") val role: String
+    @SerializedName("user_id") // Sesuai dengan primary key di tabel 'users' Anda
+    val userId: String,
+
+    @SerializedName("nama_lengkap")
+    val nama_lengkap: String,
+
+    @SerializedName("email")
+    val email: String,
+
+    @SerializedName("role")
+    val role: String,
+
+    @SerializedName("id_mitra") // Kunci untuk pembagian kelompok
+    val id_mitra: String? = null
 )
 
 // Simpan di data/model/MessageResponse.kt

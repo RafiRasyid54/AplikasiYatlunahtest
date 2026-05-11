@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.yatlunah.app.data.model.UserNameUpdate
 import com.yatlunah.app.data.model.UserPasswordUpdate
 import com.yatlunah.app.data.model.UserStats // ✅ Import model statistikmu
+import com.yatlunah.app.data.remote.RetrofitClient
 import com.yatlunah.app.data.repository.AuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,6 +94,21 @@ class ProfileViewModel : ViewModel() {
     // Di dalam ProfileViewModel.kt
     // Di dalam ProfilViewModel.kt
     // Di dalam class ProfilViewModel : ViewModel() { ...
+
+    // Lokasi: app/src/main/java/com/yatlunah/app/ui/screen/profile/ProfileViewModel.kt
+
+    fun assignGuruToSantri(santriId: String, guruId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.authApi.assignGuru(santriId, guruId)
+                if (response.isSuccessful) {
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("YATLUNAH_DEBUG", "Error assign guru: ${e.message}")
+            }
+        }
+    }
 
     fun updateUserRole(userId: String, newRole: String, onSuccess: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {

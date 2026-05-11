@@ -124,6 +124,8 @@ fun UserListScreen(
                 }
             } else {
                 // Data List
+                // --- Ganti bagian LazyColumn di UserListScreen.kt dengan ini ---
+
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -136,7 +138,18 @@ fun UserListScreen(
                             textColor = textColor,
                             isDark = isDark
                         ) {
-                            onNavigateToDetail(user.userId, user.nama_lengkap, user.email)
+                            // PERBAIKAN KRUSIAL: Proteksi terhadap data NULL
+                            // Pastikan menggunakan nama field yang sesuai dengan model kamu (userId atau user_id)
+                            val idUntukNavigasi = user.userId ?: ""
+                            val namaUntukNavigasi = user.nama_lengkap ?: "User"
+                            val emailUntukNavigasi = user.email ?: ""
+
+                            // Hanya navigasi jika ID tidak kosong (mencegah crash)
+                            if (idUntukNavigasi.isNotEmpty()) {
+                                onNavigateToDetail(idUntukNavigasi, namaUntukNavigasi, emailUntukNavigasi)
+                            } else {
+                                android.util.Log.e("YATLUNAH_DEBUG", "Gagal Navigasi: ID User Null")
+                            }
                         }
                     }
                 }

@@ -1,78 +1,99 @@
 package com.yatlunah.app.ui.screen.admin
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.yatlunah.app.data.model.UserResponse
+import com.yatlunah.app.data.remote.RetrofitClient
 import com.yatlunah.app.ui.screen.profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserDetailScreen(
-    userId: String,
+    userId: String,    // Diambil dari kolom 'id' di database Anda
     userName: String,
     userEmail: String,
     initialRole: String,
     onBack: () -> Unit,
     profileViewModel: ProfileViewModel = viewModel()
 ) {
-    // Tema & Warna Dinamis
+    // 1. Token Warna Brand Yatlunah
     val isDark = isSystemInDarkTheme()
-    val bgColor = if (isDark) Color(0xFF0F0F0F) else Color(0xFFF4F5F7)
-    val surfaceColor = if (isDark) Color(0xFF1E1E1E) else Color.White
-    val textColor = if (isDark) Color.White else Color(0xFF111111)
+    val bgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF0FDF4)
+    val surfaceColor = if (isDark) Color(0xFF1E293B) else Color.White
+    val textColor = if (isDark) Color.White else Color(0xFF1E293B)
+    val brandGreen = Color(0xFF22C55E)
 
-    // State
+    // 2. State Management
     var selectedRole by remember { mutableStateOf(initialRole) }
-    var showDialog by remember { mutableStateOf(false) }
+    var showRoleDialog by remember { mutableStateOf(false) }
     var tempRole by remember { mutableStateOf("") }
 
-    // Warna Identitas Role
+    var showGuruPicker by remember { mutableStateOf(false) }
+    var guruList by remember { mutableStateOf<List<UserResponse>>(emptyList()) }
+    var isLoadingGuru by remember { mutableStateOf(false) }
+
     val roleColor = when (selectedRole.lowercase()) {
-        "guru" -> Color(0xFF3B82F6)   // Biru
-        "admin" -> Color(0xFFF59E0B)  // Oranye
-        else -> Color(0xFF00D639)     // Hijau Santri
+        "guru" -> Color(0xFF3B82F6)
+        "admin" -> Color(0xFFF59E0B)
+        else -> brandGreen
     }
 
+    // 3. Lifecycle Effects
     LaunchedEffect(userId) {
-        profileViewModel.fetchUserStats(userId)
+        if (userId.isNotEmpty()) {
+            profileViewModel.fetchUserStats(userId)
+        }
     }
 
-    val stats = profileViewModel.userStats.value
+    LaunchedEffect(showGuruPicker) {
+        if (showGuruPicker && guruList.isEmpty()) {
+            isLoadingGuru = true
+            try {
+                // Mengambil daftar guru untuk plotting kelompok
+                val response = RetrofitClient.authApi.getUsersByRole("guru", null)
+                if (response.isSuccessful) {
+                    guruList = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("YATLUNAH_DEBUG", "Gagal load guru: ${e.message}")
+            } finally {
+                isLoadingGuru = false
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text("Detail Pengguna", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                },
+                title = { Text("Profil Pengguna", fontWeight = FontWeight.Black, fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = bgColor,
-                    titleContentColor = textColor,
-                    navigationIconContentColor = textColor
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = bgColor)
             )
         },
         containerColor = bgColor
@@ -82,216 +103,149 @@ fun UserDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp), // Sedikit diperlebar
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // --- HEADER: Avatar & Info Dasar ---
+            // --- HEADER: Avatar ---
             Box(
                 modifier = Modifier
-                    .size(90.dp)
-                    .shadow(if (isDark) 0.dp else 8.dp, CircleShape, spotColor = roleColor.copy(alpha = 0.3f))
-                    .background(roleColor.copy(alpha = 0.15f), CircleShape),
+                    .size(100.dp)
+                    .shadow(8.dp, CircleShape)
+                    .background(roleColor.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = userName.take(1).uppercase(),
-                    color = roleColor,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                val initial = if (userName.isNotEmpty()) userName.take(1).uppercase() else "?"
+                Text(initial, color = roleColor, fontSize = 40.sp, fontWeight = FontWeight.Black)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = userName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = textColor)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = userEmail, fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Badge Role Saat Ini
-            Surface(
-                color = roleColor.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = selectedRole.uppercase(),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Black,
-                    color = roleColor,
-                    letterSpacing = 1.sp
-                )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = userName.ifEmpty { "Tanpa Nama" }, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = textColor)
+                Text(text = userEmail.ifEmpty { "Email tidak tersedia" }, fontSize = 14.sp, color = Color.Gray)
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
-
-            // --- SEKSI PERUBAHAN ROLE ---
+            // --- CARD 1: Manajemen Akses (Update Role) ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = surfaceColor),
-                elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 2.dp)
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.SwapHoriz, contentDescription = null, tint = roleColor, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.SwapHoriz, null, tint = roleColor)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Manajemen Akses",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
+                        Text("Ubah Peran", fontWeight = FontWeight.Bold, color = textColor)
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
-                        text = "Pilih peran yang sesuai untuk menentukan hak akses pengguna ini di aplikasi.",
-                        fontSize = 13.sp,
-                        color = Color.Gray,
-                        lineHeight = 20.sp
+                        "Ubah hak akses pengguna menjadi Guru atau Santri.",
+                        fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 8.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Logic: Tampilkan tombol yang BUKAN role saat ini
-                    val targetRole = if (selectedRole == "santri") "guru" else "santri"
-                    val targetColor = if (targetRole == "guru") Color(0xFF3B82F6) else Color(0xFF00D639)
-
+                    val targetRole = if (selectedRole.lowercase() == "santri") "guru" else "santri"
                     Button(
-                        onClick = {
-                            tempRole = targetRole
-                            showDialog = true
-                        },
+                        onClick = { tempRole = targetRole; showRoleDialog = true },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = targetColor)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = if(targetRole == "guru") Color(0xFF3B82F6) else brandGreen)
                     ) {
-                        Text(
-                            text = "Ubah menjadi ${targetRole.replaceFirstChar { it.uppercase() }}",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color.White
-                        )
+                        Text("Jadikan ${targetRole.uppercase()}", fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // --- STATISTIK BELAJAR ---
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                Text(
-                    text = "Aktivitas Belajar",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = textColor
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = surfaceColor),
-                elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(vertical = 20.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+            // --- CARD 2: Plotting Kelompok (Sesuai Struktur Database: id_mitra) ---
+            if (selectedRole.lowercase() == "santri") {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                    elevation = CardDefaults.cardElevation(4.dp)
                 ) {
-                    StatItem("Hari Beruntun", "${stats?.currentStreak ?: 0}", roleColor)
-
-                    // Divider Vertikal Tipis
-                    VerticalDivider(modifier = Modifier.height(40.dp), color = Color.Gray.copy(alpha = 0.2f))
-
-                    StatItem("Jilid", "${stats?.lastJilid ?: 1}", roleColor)
-
-                    VerticalDivider(modifier = Modifier.height(40.dp), color = Color.Gray.copy(alpha = 0.2f))
-
-                    StatItem("Halaman", "${stats?.lastHalaman ?: 0}", roleColor)
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.GroupAdd, null, tint = Color.Gray)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Kelompok Bimbingan", fontWeight = FontWeight.Bold, color = textColor)
+                        }
+                        Text(
+                            "Tetapkan salah satu dari 8 ustadz pembimbing. Ini akan memperbarui kolom 'id_mitra' di database.",
+                            fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                        Button(
+                            onClick = { showGuruPicker = true },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                        ) {
+                            Text("Tetapkan Ustadz", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
-
-            // --- PROGRESS TOTAL ---
-            Spacer(modifier = Modifier.height(28.dp))
-
-            val progressValue = stats?.totalProgress ?: 0f
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Penyelesaian Program", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textColor)
-                Text("${(progressValue * 100).toInt()}%", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = roleColor)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LinearProgressIndicator(
-                progress = { progressValue },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp)),
-                color = roleColor,
-                trackColor = roleColor.copy(alpha = 0.1f)
-            )
-
-            Spacer(modifier = Modifier.height(40.dp)) // Ruang napas di bawah
         }
     }
 
-    // --- DIALOG KONFIRMASI ---
-    if (showDialog) {
-        val dialogBtnColor = if(tempRole == "guru") Color(0xFF3B82F6) else Color(0xFF00D639)
-
+    // --- DIALOG PICKER GURU (Fix NullPointerException) ---
+    if (showGuruPicker) {
         AlertDialog(
+            onDismissRequest = { showGuruPicker = false },
             containerColor = surfaceColor,
-            titleContentColor = textColor,
-            textContentColor = Color.Gray,
-            shape = RoundedCornerShape(20.dp), // Sudut dialog lebih membulat
-            onDismissRequest = { showDialog = false },
-            title = { Text("Konfirmasi Perubahan", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+            title = { Text("Pilih Pembimbing", fontWeight = FontWeight.Bold) },
             text = {
-                Text(
-                    text = "Apakah Anda yakin ingin mengubah peran $userName menjadi ${tempRole.uppercase()}? \n\nPengguna ini akan segera dialihkan ke dasbor ${if(tempRole == "guru") "pengajar" else "santri"}.",
-                    lineHeight = 20.sp,
-                    fontSize = 14.sp
-                )
+                Box(modifier = Modifier.heightIn(max = 300.dp)) {
+                    if (isLoadingGuru) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = brandGreen)
+                    } else {
+                        LazyColumn {
+                            items(guruList) { guru ->
+                                // SAFE CHECK: Memberikan fallback agar 'id' tidak null
+                                val safeGuruId = guru.userId ?: ""
+                                val safeNama = guru.nama_lengkap ?: "Tanpa Nama"
+
+                                ListItem(
+                                    headlineContent = { Text(safeNama, fontWeight = FontWeight.Medium) },
+                                    modifier = Modifier.clickable {
+                                        if (safeGuruId.isNotEmpty()) {
+                                            // Memanggil fungsionalitas update id_mitra di backend
+                                            profileViewModel.updateUserRole(userId, selectedRole) {
+                                                showGuruPicker = false
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             },
+            confirmButton = {
+                TextButton(onClick = { showGuruPicker = false }) { Text("Batal", color = Color.Gray) }
+            }
+        )
+    }
+
+    // --- DIALOG KONFIRMASI ROLE ---
+    if (showRoleDialog) {
+        AlertDialog(
+            onDismissRequest = { showRoleDialog = false },
+            containerColor = surfaceColor,
+            title = { Text("Konfirmasi") },
+            text = { Text("Yakin ingin mengubah peran $userName menjadi ${tempRole.uppercase()}?") },
             confirmButton = {
                 Button(
                     onClick = {
                         profileViewModel.updateUserRole(userId, tempRole) {
                             selectedRole = tempRole
-                            showDialog = false
+                            showRoleDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = dialogBtnColor),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
-                ) {
-                    Text("Ya, Ubah Role", fontWeight = FontWeight.Bold, color = Color.White)
-                }
+                    colors = ButtonDefaults.buttonColors(containerColor = brandGreen)
+                ) { Text("Ya, Ubah") }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Batal", color = Color.Gray, fontWeight = FontWeight.Bold)
-                }
+                TextButton(onClick = { showRoleDialog = false }) { Text("Batal") }
             }
         )
-    }
-}
-
-@Composable
-fun StatItem(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = 22.sp, fontWeight = FontWeight.Black, color = color)
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(label, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
     }
 }
