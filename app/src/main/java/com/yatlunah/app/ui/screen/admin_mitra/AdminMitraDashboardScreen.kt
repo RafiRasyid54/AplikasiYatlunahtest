@@ -41,10 +41,10 @@ private object MitraTokens {
 @Composable
 fun AdminMitraDashboardScreen(
     namaAdmin: String,
-    onNavigateToControl: () -> Unit, // ✅ Gunakan ini untuk tombol tengah
-    onNavigateToUserList: (String) -> Unit,
+    onNavigateToControl: () -> Unit,
+    onNavigateToUserList: (String) -> Unit, // ADA PARAMETER INI
     onNavigateToProfile: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit // ADA PARAMETER INI
 ) {
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) MitraTokens.darkBg else Color(0xFFF4F5F7)

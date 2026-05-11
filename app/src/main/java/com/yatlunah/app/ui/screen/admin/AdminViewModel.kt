@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yatlunah.app.data.model.QuotesHarian
+import com.yatlunah.app.data.model.LatihanSoal
 import com.yatlunah.app.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,29 +15,38 @@ import kotlinx.coroutines.launch
 
 class AdminViewModel : ViewModel() {
 
-    // Gunakan instance yang bertipe AuthApiService
-    private val apiService = RetrofitClient.instance
+    // --- STATE MANAGEMENT ---
 
+    // State untuk Quote
     private val _quotes = MutableStateFlow<List<QuotesHarian>>(emptyList())
     val quotes: StateFlow<List<QuotesHarian>> = _quotes.asStateFlow()
 
+    // State untuk Soal Latihan
+    private val _questions = MutableStateFlow<List<LatihanSoal>>(emptyList())
+    val questions: StateFlow<List<LatihanSoal>> = _questions.asStateFlow()
+
+    // State UI Umum
     var isLoading by mutableStateOf(false)
-    var isQuoteSavedSuccess by mutableStateOf(false)
+    var isActionSuccess by mutableStateOf(false) // Digunakan bersama untuk Soal & Quote
+    var isQuoteSavedSuccess by mutableStateOf(false) // Deprecated: Digunakan oleh screen Quote lama
     var errorMessage by mutableStateOf<String?>(null)
 
     init {
-        getAllQuotes()
+        fetchQuotes()
+        fetchQuestions()
     }
+
+    // --- LOGIC UNTUK QUOTE ---
 
     fun fetchQuotes() {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = RetrofitClient.materiApi.getAllQuotes() // Pastikan endpoint ini ada di ApiService
+                val response = RetrofitClient.materiApi.getAllQuotes()
                 if (response.isSuccessful) {
                     _quotes.value = response.body() ?: emptyList()
                 } else {
-                    errorMessage = "Gagal mengambil data: ${response.code()}"
+                    errorMessage = "Gagal mengambil quote: ${response.code()}"
                 }
             } catch (e: Exception) {
                 errorMessage = "Koneksi Error: ${e.localizedMessage}"
@@ -46,29 +56,6 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun getAllQuotes() {
-        viewModelScope.launch {
-            isLoading = true
-            try {
-                // Jika kamu sudah tambah getAllQuotes() di interface:
-                val response = apiService.getAllQuotes()
-
-                // ATAU jika tetap pakai yang lama:
-                // val response = apiService.getRandomQuote()
-
-                if (response.isSuccessful) {
-                    _quotes.value = response.body() ?: emptyList()
-                }
-            } catch (e: Exception) {
-                errorMessage = e.message
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    // app/src/main/java/com/yatlunah/app/ui/screen/admin/AdminViewModel.kt
-
     fun saveQuote(teks: String, sumber: String, hari: String) {
         viewModelScope.launch {
             isLoading = true
@@ -76,10 +63,11 @@ class AdminViewModel : ViewModel() {
                 val newQuote = QuotesHarian(teksQuote = teks, sumber = sumber, hari = hari)
                 val response = RetrofitClient.materiApi.tambahQuote(newQuote)
                 if (response.isSuccessful) {
+                    isActionSuccess = true
                     isQuoteSavedSuccess = true
-                    fetchQuotes() // Refresh daftar
+                    fetchQuotes()
                 } else {
-                    errorMessage = "Gagal menyimpan: ${response.code()}"
+                    errorMessage = "Gagal menyimpan quote: ${response.code()}"
                 }
             } catch (e: Exception) {
                 errorMessage = e.localizedMessage
@@ -89,7 +77,6 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    // FIX: Tambahkan fungsi updateQuote yang hilang
     fun updateQuote(id: Int, teks: String, sumber: String, hari: String) {
         viewModelScope.launch {
             isLoading = true
@@ -97,10 +84,11 @@ class AdminViewModel : ViewModel() {
                 val updatedQuote = QuotesHarian(id = id, teksQuote = teks, sumber = sumber, hari = hari)
                 val response = RetrofitClient.materiApi.updateQuote(id, updatedQuote)
                 if (response.isSuccessful) {
+                    isActionSuccess = true
                     isQuoteSavedSuccess = true
-                    fetchQuotes() // Refresh daftar
+                    fetchQuotes()
                 } else {
-                    errorMessage = "Gagal memperbarui: ${response.code()}"
+                    errorMessage = "Gagal memperbarui quote: ${response.code()}"
                 }
             } catch (e: Exception) {
                 errorMessage = e.localizedMessage
@@ -110,21 +98,99 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    fun deleteQuote(id: Int) { // Parameter 'id' sekarang digunakan di bawah
+    fun deleteQuote(id: Int) {
         viewModelScope.launch {
             try {
-                val response = apiService.deleteQuote(id)
+                val response = RetrofitClient.materiApi.deleteQuote(id)
                 if (response.isSuccessful) {
-                    getAllQuotes()
+                    fetchQuotes()
                 }
             } catch (e: Exception) {
-                errorMessage = e.message
+                errorMessage = e.localizedMessage
             }
         }
     }
 
-    fun resetQuoteStatus() {
+    // --- LOGIC UNTUK SOAL LATIHAN ---
+
+    fun fetchQuestions() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = RetrofitClient.latihanApi.getAllSoal()
+                if (response.isSuccessful) {
+                    _questions.value = response.body() ?: emptyList()
+                } else {
+                    // Quotes bisa, Latihan Soal gagal? Cek kode error di sini
+                    errorMessage = "Error API: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                // Jika mapping jilid_id salah, error akan tertangkap di sini
+                errorMessage = "Mapping Error: ${e.localizedMessage}"
+                e.printStackTrace() // Cek di Logcat Android Studio
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+    fun saveSoal(soal: LatihanSoal) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = RetrofitClient.latihanApi.tambahSoalLatihan(soal)
+                if (response.isSuccessful) {
+                    isActionSuccess = true
+                    fetchQuestions()
+                } else {
+                    errorMessage = "Gagal menyimpan soal: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                errorMessage = e.localizedMessage
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun updateSoal(id: Int, soal: LatihanSoal) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = RetrofitClient.latihanApi.updateSoal(id, soal)
+                if (response.isSuccessful) {
+                    isActionSuccess = true
+                    fetchQuestions()
+                } else {
+                    errorMessage = "Gagal memperbarui soal: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                errorMessage = e.localizedMessage
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun deleteSoal(id: Int) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.latihanApi.deleteSoal(id)
+                if (response.isSuccessful) {
+                    fetchQuestions()
+                }
+            } catch (e: Exception) {
+                errorMessage = e.localizedMessage
+            }
+        }
+    }
+
+    // --- UTILITY ---
+
+    fun resetStatus() {
+        isActionSuccess = false
         isQuoteSavedSuccess = false
         errorMessage = null
     }
+
+    fun resetQuoteStatus() = resetStatus()
 }

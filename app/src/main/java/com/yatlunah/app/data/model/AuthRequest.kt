@@ -29,7 +29,12 @@ data class AuthResponse(
     val role: String,
 
     @SerializedName("status")
-    val status: String
+    val status: String,
+
+    // TAMBAHKAN BARIS INI
+    // Pastikan nilai @SerializedName cocok dengan key JSON dari backend Anda (misal: "id_mitra" atau "idMitra")
+    @SerializedName("id_mitra")
+    val idMitra: String? = null
 )
 
 data class UserResponse(

@@ -67,8 +67,10 @@ import com.yatlunah.app.data.model.LatihanSoal // Untuk tipe data LatihanSoal
 import com.yatlunah.app.ui.screen.latihan.LatihanViewModel
 import com.yatlunah.app.ui.screen.latihan.LatihanMakhrajScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yatlunah.app.ui.screen.admin.AdminQuestionScreen
 import com.yatlunah.app.ui.screen.admin.QuestionMonitoringScreen
+import com.yatlunah.app.ui.screen.admin_mitra.AdminMitraDashboardScreen
+import com.yatlunah.app.ui.screen.admin_mitra.MitraControlScreen
+import com.yatlunah.app.ui.screen.admin_mitra.MitraUserListScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,14 +121,22 @@ class MainActivity : ComponentActivity() {
                         composable("login") {
                             LoginScreen(
                                 onNavigateToRegister = { navController.navigate("register") },
-                                onLoginSuccess = { userId, namaUser, emailUser, role ->
+                                // PERBAIKAN 1: Tambahkan parameter kelima (idMitra) di sini
+                                onLoginSuccess = { userId, namaUser, emailUser, role, idMitra ->
                                     val encodedId = URLEncoder.encode(userId, "UTF-8")
                                     val encodedName = URLEncoder.encode(namaUser, "UTF-8")
                                     val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
                                     val cleanRole = role.lowercase().trim()
 
+                                    // PERBAIKAN 2: Encode idMitra (berikan default "0" atau "null" jika kosong)
+                                    val encodedIdMitra = if (!idMitra.isNullOrEmpty()) URLEncoder.encode(idMitra, "UTF-8") else "0"
+
                                     val route = when (cleanRole) {
                                         "admin" -> "dashboard_admin/$encodedId/$encodedName/$encodedEmail/$cleanRole"
+
+                                        // PERBAIKAN 3: Tambahkan pengecekan role untuk admin mitra
+                                        "admin_mitra", "mitra" -> "dashboard_mitra/$encodedId/$encodedName/$encodedEmail/$cleanRole/$encodedIdMitra"
+
                                         "guru" -> "dashboard_guru/$encodedId/$encodedName/$encodedEmail/$cleanRole"
                                         else -> "dashboard_santri/$encodedId/$encodedName/$encodedEmail/$cleanRole"
                                     }
@@ -237,7 +247,77 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() }
                             )
                         }
+                        // Mitra Flow
+                        // --- MITRA FLOW ---
 
+                        // 1. Dashboard Mitra
+                        // --- MITRA FLOW ---
+
+// 1. Dashboard Mitra
+                        // --- MITRA FLOW ---
+
+// 1. Dashboard Mitra
+                        composable(
+                            route = "dashboard_mitra/{id}/{nama}/{email}/{role}/{idMitra}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.StringType },
+                                navArgument("nama") { type = NavType.StringType },
+                                navArgument("email") { type = NavType.StringType },
+                                navArgument("role") { type = NavType.StringType },
+                                navArgument("idMitra") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val id = backStackEntry.arguments?.getString("id") ?: ""
+                            val name = backStackEntry.arguments?.getString("nama") ?: ""
+                            val email = backStackEntry.arguments?.getString("email") ?: ""
+                            val role = backStackEntry.arguments?.getString("role") ?: "mitra"
+                            // idMitra tetap ditangkap dari URL login, tapi tidak diteruskan ke screen lain
+                            // karena screen lain mengambilnya mandiri lewat SessionManager
+
+                            AdminMitraDashboardScreen(
+                                namaAdmin = java.net.URLDecoder.decode(name, "UTF-8"),
+                                onNavigateToControl = {
+                                    navController.navigate("mitra_control") // ✅ Rute disesuaikan, tanpa idMitra
+                                },
+                                onNavigateToUserList = { targetRole ->
+                                    navController.navigate("mitra_user_list/$targetRole") // ✅ Rute disesuaikan, tanpa idMitra
+                                },
+                                onNavigateToProfile = {
+                                    navController.navigate("profile/$id/$name/$email/$role")
+                                },
+                                onLogout = {
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
+// 2. Control Screen Mitra
+                        composable("mitra_control") { // ✅ Rute disesuaikan
+                            MitraControlScreen(
+                                // Asumsi: MitraControlScreen tidak memiliki parameter idMitra dan mengambilnya dari SessionManager
+                                onNavigateToUserList = { targetRole ->
+                                    navController.navigate("mitra_user_list/$targetRole")
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+// 3. User List Mitra
+                        composable("mitra_user_list/{role}") { backStackEntry -> // ✅ Rute disesuaikan
+                            val role = backStackEntry.arguments?.getString("role") ?: "santri"
+
+                            MitraUserListScreen(
+                                role = role, // ✅ Parameter idMitra dihapus karena diambil dari SessionManager
+                                onBack = { navController.popBackStack() },
+                                onNavigateToDetail = { userId, n, e ->
+                                    val en = java.net.URLEncoder.encode(n, "UTF-8")
+                                    val ee = java.net.URLEncoder.encode(e, "UTF-8")
+                                    navController.navigate("user_detail/$userId/$en/$ee/$role")
+                                }
+                            )
+                        }
                         // --- SANTRI FLOW ---
                         composable(
                             route = "dashboard_santri/{id}/{nama}/{email}/{role}",
@@ -462,17 +542,12 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToQuotes = { navController.navigate("admin_quotes") },
                                 onNavigateToLaporan = { /* TODO */ },
                                 // PERBAIKAN: Gunakan parameter tunggal onNavigateToQuestions
-                                onNavigateToQuestions = { navController.navigate("admin_questions") },
+                                onNavigateToInputLatihan = { navController.navigate("question_monitoring") } ,
                                 onBack = { navController.popBackStack() }
                             )
                         }
 
 // 2. Tambahkan rute AdminQuestionScreen (Gabungan Input & Monitoring)
-                        composable("admin_questions") {
-                            AdminQuestionScreen(
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
 
                         composable("input_latihan") {
                             val scope = rememberCoroutineScope()
@@ -525,7 +600,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("question_monitoring") {
-                            QuestionMonitoringScreen(onBack = { navController.popBackStack() })
+                            // Pastikan memanggil Screen Monitoring, BUKAN InputLatihanScreen
+                            QuestionMonitoringScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
                         }
 
                         composable(
