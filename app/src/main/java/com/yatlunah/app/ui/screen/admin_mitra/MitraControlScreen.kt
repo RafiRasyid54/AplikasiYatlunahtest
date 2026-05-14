@@ -6,6 +6,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.*
@@ -21,7 +22,9 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MitraControlScreen(
+    idMitra: String, // Tambahkan parameter idMitra
     onNavigateToUserList: (String) -> Unit,
+    onNavigateToGroupList: (String) -> Unit, // Tambahkan callback untuk navigasi kelompok
     onBack: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
@@ -50,6 +53,7 @@ fun MitraControlScreen(
                 color = Color.Gray
             )
 
+            // Opsi 1: Manajemen Guru
             MitraControlCard(
                 label = "Manajemen Guru",
                 icon = Icons.Default.PersonSearch,
@@ -58,12 +62,22 @@ fun MitraControlScreen(
                 onClick = { onNavigateToUserList("guru") }
             )
 
+            // Opsi 2: Manajemen Santri
             MitraControlCard(
                 label = "Manajemen Santri",
                 icon = Icons.Default.People,
                 color = Color(0xFF00D639),
                 containerColor = cardColor,
                 onClick = { onNavigateToUserList("santri") }
+            )
+
+            // Opsi 3: Manajemen Kelompok (FITUR BARU)
+            MitraControlCard(
+                label = "Manajemen Kelompok",
+                icon = Icons.Default.Groups, // Icon Kelompok
+                color = Color(0xFF8B5CF6), // Warna Ungu/Violet agar kontras
+                containerColor = cardColor,
+                onClick = { onNavigateToGroupList(idMitra) }
             )
         }
     }

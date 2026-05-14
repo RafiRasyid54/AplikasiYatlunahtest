@@ -4,6 +4,7 @@ import com.yatlunah.app.data.model.*
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
+import com.yatlunah.app.data.model.UserResponse
 
 interface AuthApiService {
 
@@ -102,4 +103,21 @@ interface AuthApiService {
     suspend fun deleteQuote(
         @Path("id") id: Int
     ): Response<MessageResponse> // Ganti ke MessageResponse
+
+    //Mitra auth
+    @GET("users-by-mitra")
+    suspend fun getUsersFiltered(
+        @Query("role") role: String,
+        @Query("id_mitra") idMitra: String
+    ): Response<List<UserResponse>>
+
+    @GET("admin/mitra/{id_mitra}/groups")
+    suspend fun getMitraGroups(
+        @Path("id_mitra") idMitra: String
+    ): Response<List<GroupListResponse>>
+
+    @GET("admin/mitra/groups/{guru_id}/students")
+    suspend fun getGroupDetails(
+        @Path("guru_id") guruId: String
+    ): Response<GroupDetailResponse>
 }
