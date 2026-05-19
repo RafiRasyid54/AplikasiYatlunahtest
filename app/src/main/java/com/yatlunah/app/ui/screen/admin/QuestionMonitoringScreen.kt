@@ -127,7 +127,8 @@ fun QuestionItem(soal: LatihanSoal, onEdit: () -> Unit, onDelete: () -> Unit) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        // ✅ FIX DARK MODE: Menggunakan MaterialTheme.colorScheme.surface agar otomatis terang/gelap
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
@@ -150,7 +151,13 @@ fun QuestionItem(soal: LatihanSoal, onEdit: () -> Unit, onDelete: () -> Unit) {
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = soal.pertanyaan, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                // ✅ FIX DARK MODE: Teks menggunakan onSurface agar tetap terbaca saat mode gelap
+                Text(
+                    text = soal.pertanyaan,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Text(
                     text = "Kunci: ${soal.kunciJawaban}",
                     fontSize = 12.sp,

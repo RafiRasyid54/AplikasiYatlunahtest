@@ -1,5 +1,8 @@
 package com.yatlunah.app.ui.screen.admin
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,90 +13,81 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yatlunah.app.R
 
 // ─────────────────────────────────────────────
-// Token warna — satu tempat, mudah diubah
+// Token warna - Diselaraskan dengan Tema Santri
 // ─────────────────────────────────────────────
-private object DarkTokens {
-    val background    = Color(0xFF0F0F0F) // bukan pure black → nyaman di OLED
-    val surface1      = Color(0xFF1A1A1A) // kartu utama
-    val surface2      = Color(0xFF242424) // kartu nested / hover
-    val surface3      = Color(0xFF2E2E2E) // divider / chip
-    val border        = Color(0x12FFFFFF) // rgba(255,255,255,0.07)
-    val borderMedium  = Color(0x1FFFFFFF) // rgba(255,255,255,0.12)
+private object AdminColors {
+    val brandGreen      = Color(0xFF22C55E)
+    val lightGreenBg    = Color(0xFFF0FDF4)
+    val darkGreenCard   = Color(0xFF065F46)
+    val textSecondary   = Color(0xFF6B7280)
+    val darkBackground  = Color(0xFF0F172A)
+    val darkSurface     = Color(0xFF1E293B)
 
-    val green         = Color(0xFF22C55E) // aksen utama (tombol, aktif)
-    val greenDim      = Color(0xFF166534) // overview card gradient start
-    val greenDeep     = Color(0xFF14532D) // overview card gradient end
-    val greenTint     = Color(0x1F22C55E) // background tinted hijau
-
-    val amber         = Color(0xFFF59E0B)
-    val amberTint     = Color(0x1AF59E0B)
-    val blue          = Color(0xFF60A5FA)
-    val blueTint      = Color(0x1A60A5FA)
-
-    val text1         = Color(0xFFF0F0F0) // teks utama
-    val text2         = Color(0xFFA0A0A0) // teks sekunder / section label
-    val text3         = Color(0xFF606060) // teks tersier / timestamp
-    val textOnGreen   = Color.White
-}
-
-private object LightTokens {
-    val green         = Color(0xFF00D639)
-    val greenDeep     = Color(0xFF00D639)
-    val greenDim      = Color(0xFF00D639)
-    val greenTint     = Color(0x1A00D639)
-    val amber         = Color(0xFFF59E0B)
-    val amberTint     = Color(0x1AF59E0B)
-    val blue          = Color(0xFF3B82F6)
-    val blueTint      = Color(0x1A3B82F6)
-    val text2         = Color.Gray
-    val text3         = Color.LightGray
-    val border        = Color(0x22000000)
-    val borderMedium  = Color(0x33000000)
+    // Aksen spesifik admin
+    val amber           = Color(0xFFF59E0B)
+    val blue            = Color(0xFF3B82F6)
 }
 
 @Composable
 fun AdminDashboardScreen(
     namaAdmin: String,
     onNavigateToUserMgmt: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    viewModel: AdminViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
     // Warna yang berubah sesuai tema
-    val brandGreen    = if (isDark) DarkTokens.green        else LightTokens.green
-    val greenTint     = if (isDark) DarkTokens.greenTint    else LightTokens.greenTint
-    val amberColor    = if (isDark) DarkTokens.amber        else LightTokens.amber
-    val amberTint     = if (isDark) DarkTokens.amberTint    else LightTokens.amberTint
-    val blueColor     = if (isDark) DarkTokens.blue         else LightTokens.blue
-    val blueTint      = if (isDark) DarkTokens.blueTint     else LightTokens.blueTint
-    val text2         = if (isDark) DarkTokens.text2        else LightTokens.text2
-    val text3         = if (isDark) DarkTokens.text3        else LightTokens.text3
-    val borderColor   = if (isDark) DarkTokens.border       else LightTokens.border
-    val surface1Bg    = if (isDark) DarkTokens.surface1     else MaterialTheme.colorScheme.surface
+    val bgColor = if (isDark) AdminColors.darkBackground else AdminColors.lightGreenBg
+    val textColor = if (isDark) Color.White else Color(0xFF1E293B)
+    val surfaceColor = if (isDark) AdminColors.darkSurface else Color.White
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+            viewModel.startRealtimeUpdates(context)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
+        viewModel.startRealtimeUpdates(context)
+        viewModel.fetchDashboardStats()
+        viewModel.fetchRecentLogs()
+    }
 
     Scaffold(
-        containerColor = if (isDark) DarkTokens.background else MaterialTheme.colorScheme.background,
+        containerColor = bgColor,
         bottomBar = {
             AdminBottomBar(
                 isDark = isDark,
-                brandGreen = brandGreen,
+                brandGreen = AdminColors.brandGreen,
                 onNavigateToUserMgmt = onNavigateToUserMgmt,
                 onNavigateToProfile = onNavigateToProfile
             )
@@ -102,153 +96,139 @@ fun AdminDashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (isDark) DarkTokens.background else MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-
             // ── HEADER ──────────────────────────────────────────
-            AdminHeader(namaAdmin = namaAdmin, isDark = isDark, brandGreen = brandGreen)
+            AdminHeader(namaAdmin = namaAdmin, textColor = textColor)
 
-            // ── 1. OVERVIEW ──────────────────────────────────────
-            OverviewCard(isDark = isDark)
+            // ── WAKTU SHALAT BANNER (REALTIME) ───────────────────
+            WaktuShalatBanner(
+                hijriDate = viewModel.hijriDate,
+                lokasi = viewModel.currentLocationName,
+                sholatNama = viewModel.currentShalatName,
+                sholatWaktu = viewModel.currentShalatTime
+            )
 
-            Spacer(Modifier.height(20.dp))
+            // ── 1. OVERVIEW (REALTIME) ────────────────────────────
+            OverviewCard(
+                totalUser = viewModel.totalPengguna.toString(),
+                totalGuru = viewModel.totalGuru.toString(),
+                totalSantri = viewModel.totalSantri.toString(),
+                totalMitra = viewModel.totalMitra.toString()
+            )
 
-            // ── 2. LOG AKTIVITAS ─────────────────────────────────
-            SectionLabel(text = "Log Aktivitas Terbaru", isDark = isDark)
-            Spacer(Modifier.height(8.dp))
+            // ── 3. MENU GRID ──────────────────────────────────────
+            SectionLabel(text = "Menu Utama", isDark = isDark)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AdminQuickMenuCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Manajemen User",
+                    sub = "Kelola Akses",
+                    icon = Icons.Default.Group,
+                    color = AdminColors.brandGreen,
+                    surfaceColor = surfaceColor,
+                    textColor = textColor,
+                    onClick = onNavigateToUserMgmt
+                )
+                AdminQuickMenuCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Manajemen Materi",
+                    sub = "Update PDF",
+                    icon = Icons.AutoMirrored.Filled.LibraryBooks,
+                    color = AdminColors.amber,
+                    surfaceColor = surfaceColor,
+                    textColor = textColor,
+                    onClick = { /* TODO */ }
+                )
+                AdminQuickMenuCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Laporan",
+                    sub = "Rekap Nilai",
+                    icon = Icons.Default.Assessment,
+                    color = AdminColors.blue,
+                    surfaceColor = surfaceColor,
+                    textColor = textColor,
+                    onClick = { /* TODO */ }
+                )
+            }
+
+            // ── 2. LOG AKTIVITAS (REALTIME) ───────────────────────
+            SectionLabel(text = "Aktivitas Terkini", isDark = isDark)
             Card(
-                colors = CardDefaults.cardColors(containerColor = surface1Bg),
-                shape = RoundedCornerShape(14.dp),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    // gunakan border tipis di dark mode
-                ),
+                colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(Modifier.padding(12.dp)) {
-                    AdminLogActivityRow(
-                        nama = "Admin A",
-                        aksi = "Menambah Guru Baru",
-                        waktu = "1 jam lalu",
-                        initials = "AA",
-                        avatarBg = greenTint,
-                        avatarTextColor = brandGreen,
-                        text2 = text2,
-                        text3 = text3
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = borderColor
-                    )
-                    AdminLogActivityRow(
-                        nama = "User B",
-                        aksi = "Melakukan Registrasi",
-                        waktu = "3 jam lalu",
-                        initials = "UB",
-                        avatarBg = blueTint,
-                        avatarTextColor = blueColor,
-                        text2 = text2,
-                        text3 = text3
-                    )
+                Column(Modifier.padding(16.dp)) {
+                    if (viewModel.recentLogs.isEmpty()) {
+                        Text(
+                            "Belum ada aktivitas.",
+                            color = AdminColors.textSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    } else {
+                        viewModel.recentLogs.forEachIndexed { index, log ->
+                            val logColor = when (log.role) {
+                                "guru" -> AdminColors.amber
+                                "santri" -> AdminColors.blue
+                                else -> AdminColors.brandGreen
+                            }
+
+                            AdminLogActivityRow(
+                                nama = log.nama,
+                                aksi = log.aksi,
+                                waktu = log.waktu,
+                                initials = log.initials,
+                                iconColor = logColor,
+                                textColor = textColor
+                            )
+                            if (index < viewModel.recentLogs.size - 1) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                    color = AdminColors.textSecondary.copy(alpha = 0.1f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
-
-            // ── 3. MENU GRID ──────────────────────────────────────
-            SectionLabel(text = "Menu", isDark = isDark)
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                AdminSmallMenuCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Manajemen User",
-                    sub = "Cek & Edit",
-                    icon = Icons.Default.Group,
-                    iconBg = greenTint,
-                    iconTint = brandGreen,
-                    isDark = isDark,
-                    onClick = onNavigateToUserMgmt
-                )
-                AdminSmallMenuCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Manajemen Materi",
-                    sub = "Update PDF",
-                    icon = Icons.Default.LibraryBooks,
-                    iconBg = amberTint,
-                    iconTint = amberColor,
-                    isDark = isDark
-                )
-                AdminSmallMenuCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Laporan",
-                    sub = "Rekap Nilai",
-                    icon = Icons.Default.Assessment,
-                    iconBg = blueTint,
-                    iconTint = blueColor,
-                    isDark = isDark
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
-
             // ── 4. QUICK ACTION ───────────────────────────────────
-            SectionLabel(text = "Kontrol Manajemen", isDark = isDark)
-            Spacer(Modifier.height(8.dp))
             Card(
-                colors = CardDefaults.cardColors(containerColor = surface1Bg),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp)
+                colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp, top = 8.dp)
             ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .background(greenTint, RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.AdminPanelSettings,
-                                contentDescription = null,
-                                tint = brandGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "Akses Cepat Admin",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
+                Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "Kelola hak akses dan perizinan user dalam satu klik.",
-                        fontSize = 12.sp,
-                        color = text2,
-                        modifier = Modifier.padding(top = 8.dp),
-                        lineHeight = 18.sp
+                        "Pusat Kontrol Akses 🚀",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = textColor
                     )
-                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Kelola hak akses dan perizinan user dengan mudah dan cepat.",
+                        fontSize = 13.sp,
+                        color = AdminColors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
                     Button(
                         onClick = onNavigateToUserMgmt,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = brandGreen),
-                        shape = RoundedCornerShape(10.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = AdminColors.brandGreen),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            "Buka Manajemen User \uD83D\uDC65",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Buka Manajemen User", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -260,11 +240,11 @@ fun AdminDashboardScreen(
 // Sub-composable: Header
 // ─────────────────────────────────────────────
 @Composable
-private fun AdminHeader(namaAdmin: String, isDark: Boolean, brandGreen: Color) {
+private fun AdminHeader(namaAdmin: String, textColor: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 20.dp),
+            .padding(top = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -272,88 +252,148 @@ private fun AdminHeader(namaAdmin: String, isDark: Boolean, brandGreen: Color) {
             Text(
                 "Assalamualaikum,",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = AdminColors.brandGreen,
+                fontWeight = FontWeight.Bold
             )
             Text(
                 "Admin $namaAdmin",
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = textColor
             )
         }
-        Box(
+        Image(
+            painter = painterResource(id = R.drawable.yatlunahlogo),
+            contentDescription = "Logo Yatlunah",
+            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(42.dp)
-                .background(
-                    color = if (isDark) DarkTokens.greenTint else Color(0xFFE8FFF0),
-                    shape = RoundedCornerShape(12.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo_yatlunah),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
+                .size(60.dp)
+                .clip(RoundedCornerShape(12.dp))
+        )
+    }
+}
+
+// ─────────────────────────────────────────────
+// Sub-composable: Waktu Shalat Banner
+// ─────────────────────────────────────────────
+@Composable
+private fun WaktuShalatBanner(hijriDate: String, lokasi: String, sholatNama: String, sholatWaktu: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brush.horizontalGradient(listOf(AdminColors.darkGreenCard, Color(0xFF064E3B))))
+            .padding(20.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(hijriDate, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34D399))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(12.dp), tint = Color.LightGray)
+                    Spacer(Modifier.width(4.dp))
+                    Text(lokasi, fontSize = 11.sp, color = Color.LightGray, maxLines = 1)
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(sholatNama, fontSize = 12.sp, color = Color.White.copy(0.8f))
+                Text(sholatWaktu, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.White)
+            }
         }
     }
 }
 
 // ─────────────────────────────────────────────
-// Sub-composable: Overview Card
+// Sub-composable: Overview Card (Diperbarui jadi kotak Grid)
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Sub-composable: Overview Card (Compact Grid 2x2)
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Sub-composable: Overview Card (Sejajar 4 Kolom - No Scroll)
 // ─────────────────────────────────────────────
 @Composable
-private fun OverviewCard(isDark: Boolean) {
-    // Di dark mode: gradient gelap hijau (tidak neon)
-    // Di light mode: hijau cerah solid
-    val cardBrush = if (isDark) {
-        Brush.linearGradient(
-            colors = listOf(DarkTokens.greenDeep, DarkTokens.greenDim)
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(Color(0xFF00D639), Color(0xFF00C032))
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(brush = cardBrush, shape = RoundedCornerShape(16.dp))
-            .padding(16.dp)
+private fun OverviewCard(totalUser: String, totalGuru: String, totalSantri: String, totalMitra: String) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = AdminColors.brandGreen),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
-            Text(
-                "Overview Status Sistem",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatPill(label = "Total", value = "1,300")
-                StatPill(label = "Guru", value = "38")
-                StatPill(label = "Peserta", value = "1,262")
+        Column(
+            modifier = Modifier.padding(12.dp) // Padding diperkecil agar ruang Row lebih luas
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+            ) {
+                Icon(Icons.Default.Analytics, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Statistik Sistem", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+
+            // Menggunakan Row dengan Weight agar 4 item muat sejajar tanpa scroll
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp) // Jarak antar kotak sangat tipis
+            ) {
+                StatPill(modifier = Modifier.weight(1f), label = "Total", value = totalUser)
+                StatPill(modifier = Modifier.weight(1f), label = "Guru", value = totalGuru)
+                StatPill(modifier = Modifier.weight(1f), label = "Santri", value = totalSantri)
+                StatPill(modifier = Modifier.weight(1f), label = "Mitra", value = totalMitra)
             }
         }
     }
 }
 
 @Composable
-private fun StatPill(label: String, value: String) {
+private fun StatPill(modifier: Modifier = Modifier, label: String, value: String) {
     Box(
-        modifier = Modifier
-            .background(Color(0x33000000), RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+            .padding(vertical = 8.dp, horizontal = 4.dp), // Padding sangat compact
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            "$label: $value",
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = label,
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 9.sp, // Ukuran label kecil
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+            Text(
+                text = value,
+                color = Color.White,
+                fontSize = 14.sp, // Angka tetap menonjol
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
+// Sub-composable: Menu Card
+// ─────────────────────────────────────────────
+@Composable
+private fun AdminQuickMenuCard(
+    modifier: Modifier, title: String, sub: String, icon: ImageVector,
+    color: Color, surfaceColor: Color, textColor: Color, onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.shadow(4.dp, RoundedCornerShape(20.dp)),
+        colors = CardDefaults.cardColors(containerColor = surfaceColor),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.height(12.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = textColor, textAlign = TextAlign.Center)
+            Text(sub, fontSize = 10.sp, color = AdminColors.textSecondary, textAlign = TextAlign.Center)
+        }
     }
 }
 
@@ -363,11 +403,11 @@ private fun StatPill(label: String, value: String) {
 @Composable
 private fun SectionLabel(text: String, isDark: Boolean) {
     Text(
-        text = text.uppercase(),
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
-        color = if (isDark) DarkTokens.text2 else Color.Gray,
-        letterSpacing = 0.8.sp
+        text = text,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Black,
+        color = if (isDark) Color.White else Color(0xFF334155),
+        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
     )
 }
 
@@ -376,101 +416,22 @@ private fun SectionLabel(text: String, isDark: Boolean) {
 // ─────────────────────────────────────────────
 @Composable
 fun AdminLogActivityRow(
-    nama: String,
-    aksi: String,
-    waktu: String,
-    initials: String,
-    avatarBg: Color,
-    avatarTextColor: Color,
-    text2: Color,
-    text3: Color
+    nama: String, aksi: String, waktu: String, initials: String,
+    iconColor: Color, textColor: Color
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Avatar dengan inisial berwarna
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(avatarBg, CircleShape),
+            modifier = Modifier.size(40.dp).background(iconColor.copy(alpha = 0.15f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = initials,
-                color = avatarTextColor,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = initials, color = iconColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(
-                nama,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
-            )
-            Text(aksi, fontSize = 11.sp, color = text2)
+            Text(nama, color = textColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(aksi, fontSize = 12.sp, color = AdminColors.textSecondary)
         }
-        Text(waktu, fontSize = 10.sp, color = text3)
-    }
-}
-
-// ─────────────────────────────────────────────
-// Sub-composable: Small Menu Card
-// ─────────────────────────────────────────────
-@Composable
-fun AdminSmallMenuCard(
-    modifier: Modifier,
-    label: String,
-    sub: String,
-    icon: ImageVector,
-    iconBg: Color,
-    iconTint: Color,
-    isDark: Boolean,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDark) DarkTokens.surface1 else MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(if (isDark) 0.dp else 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(iconBg, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                label,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                sub,
-                fontSize = 9.sp,
-                color = if (isDark) DarkTokens.text3 else Color.Gray,
-                textAlign = TextAlign.Center
-            )
-        }
+        Text(waktu, fontSize = 10.sp, color = AdminColors.textSecondary)
     }
 }
 
@@ -479,65 +440,33 @@ fun AdminSmallMenuCard(
 // ─────────────────────────────────────────────
 @Composable
 private fun AdminBottomBar(
-    isDark: Boolean,
-    brandGreen: Color,
-    onNavigateToUserMgmt: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    isDark: Boolean, brandGreen: Color,
+    onNavigateToUserMgmt: () -> Unit, onNavigateToProfile: () -> Unit
 ) {
-    val inactiveColor = if (isDark) DarkTokens.text3 else Color.Gray
-    val barBg = if (isDark) DarkTokens.surface1 else Color.White
+    val barBg = if(isDark) Color(0xFF161616) else Color.White
 
     NavigationBar(
         containerColor = barBg,
-        tonalElevation = if (isDark) 0.dp else 8.dp,
-        modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+        modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+        tonalElevation = 8.dp
     ) {
         NavigationBarItem(
             selected = true,
             onClick = {},
-            icon = {
-                Icon(
-                    Icons.Default.Home,
-                    contentDescription = "Home",
-                    modifier = Modifier.size(26.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = brandGreen,
-                indicatorColor = if (isDark) DarkTokens.greenTint else Color(0xFFE8FFF0)
-            )
+            icon = { Icon(Icons.Default.Home, null) },
+            colors = NavigationBarItemDefaults.colors(selectedIconColor = brandGreen, indicatorColor = brandGreen.copy(0.1f))
         )
         NavigationBarItem(
             selected = false,
             onClick = onNavigateToUserMgmt,
-            icon = {
-                Icon(
-                    Icons.Default.List,
-                    contentDescription = "Daftar",
-                    tint = inactiveColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = inactiveColor,
-                indicatorColor = Color.Transparent
-            )
+            icon = { Icon(Icons.AutoMirrored.Filled.List, null) },
+            colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
         )
         NavigationBarItem(
             selected = false,
             onClick = onNavigateToProfile,
-            icon = {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = "Profil",
-                    tint = inactiveColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = inactiveColor,
-                indicatorColor = Color.Transparent
-            )
+            icon = { Icon(Icons.Default.Person, null) },
+            colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
         )
     }
 }

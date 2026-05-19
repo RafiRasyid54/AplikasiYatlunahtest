@@ -21,10 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yatlunah.app.data.model.QuotesHarian
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,7 +211,8 @@ fun QuoteFormDialog(
 fun QuoteItem(quote: QuotesHarian, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        // ✅ FIX DARK MODE: Ubah Color.White menjadi MaterialTheme.colorScheme.surface
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
@@ -237,8 +234,19 @@ fun QuoteItem(quote: QuotesHarian, onEdit: () -> Unit, onDelete: () -> Unit) {
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "\"${quote.teksQuote}\"", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(text = "- ${quote.sumber}", fontSize = 12.sp, color = Color.Gray)
+                // ✅ FIX DARK MODE: Tambahkan color = MaterialTheme.colorScheme.onSurface agar teks otomatis terang/gelap
+                Text(
+                    text = "\"${quote.teksQuote}\"",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                // ✅ FIX DARK MODE: Ubah Color.Gray menjadi onSurfaceVariant agar tetap kontras di kedua mode
+                Text(
+                    text = "- ${quote.sumber}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             IconButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Blue)

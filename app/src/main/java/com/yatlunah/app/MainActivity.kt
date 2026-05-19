@@ -121,32 +121,34 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Di dalam MainActivity.kt
+                        // JALUR LOGIN DI MAINACTIVITY.KT (Silakan sesuaikan bagian ini saja)
                         composable("login") {
                             LoginScreen(
                                 onNavigateToRegister = { navController.navigate("register") },
                                 onLoginSuccess = { userId, namaUser, emailUser, role, idMitra ->
-                                    val encodedId = URLEncoder.encode(userId, "UTF-8")
-                                    val encodedName = URLEncoder.encode(namaUser, "UTF-8")
-                                    val encodedEmail = URLEncoder.encode(emailUser, "UTF-8")
-                                    val cleanRole = role.lowercase().trim()
+                                    // Proteksi berlapis agar parameter string tidak null/kosong saat di-encode
+                                    val safeId = if (userId.isNullOrEmpty()) "unknown" else userId
+                                    val safeName = if (namaUser.isNullOrEmpty()) "User" else namaUser
+                                    val safeEmail = if (emailUser.isNullOrEmpty()) "no-email" else emailUser
+                                    val safeRole = if (role.isNullOrEmpty()) "santri" else role.lowercase().trim()
+                                    val safeIdMitra = if (idMitra.isNullOrEmpty()) "0" else idMitra
 
-                                    // DEKLARASIKAN DI SINI:
-                                    val encodedIdMitra = if (!idMitra.isNullOrEmpty()) {
-                                        URLEncoder.encode(idMitra, "UTF-8")
-                                    } else {
-                                        "0"
-                                    }
+                                    val encodedId = URLEncoder.encode(safeId, "UTF-8")
+                                    val encodedName = URLEncoder.encode(safeName, "UTF-8")
+                                    val encodedEmail = URLEncoder.encode(safeEmail, "UTF-8")
+                                    val encodedIdMitra = URLEncoder.encode(safeIdMitra, "UTF-8")
 
-                                    val route = when (cleanRole) {
-                                        "admin" -> "dashboard_admin/$encodedId/$encodedName/$encodedEmail/$cleanRole"
-                                        // Gunakan nama role sesuai database (adminmitra)
-                                        "admin_mitra", "mitra" -> "dashboard_mitra/$encodedId/$encodedName/$encodedEmail/$cleanRole/$encodedIdMitra"
-                                        "guru" -> "dashboard_guru/$encodedId/$encodedName/$encodedEmail/$cleanRole"
-                                        else -> "dashboard_santri/$encodedId/$encodedName/$encodedEmail/$cleanRole"
+                                    val route = when (safeRole) {
+                                        "admin" -> "dashboard_admin/$encodedId/$encodedName/$encodedEmail/$safeRole"
+                                        "admin_mitra", "mitra" -> "dashboard_mitra/$encodedId/$encodedName/$encodedEmail/$safeRole/$encodedIdMitra"
+                                        "guru" -> "dashboard_guru/$encodedId/$encodedName/$encodedEmail/$safeRole"
+                                        else -> "dashboard_santri/$encodedId/$encodedName/$encodedEmail/$safeRole"
                                     }
 
                                     navController.navigate(route) {
-                                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            inclusive = true
+                                        }
                                         launchSingleTop = true
                                     }
                                 }
@@ -268,6 +270,7 @@ class MainActivity : ComponentActivity() {
                             val idMitra = backStackEntry.arguments?.getString("idMitra") ?: "0"
 
                             AdminMitraDashboardScreen(
+                                idMitra = idMitra,
                                 namaAdmin = name,
                                 onNavigateToControl = {
                                     // PERBAIKAN: Harus menyertakan idMitra agar rutenya cocok (match)
@@ -424,6 +427,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // --- UNIVERSAL PROFILE ---
+                        // --- UNIVERSAL PROFILE ---
                         composable(
                             route = "profile/{id}/{nama}/{email}/{role}",
                             arguments = listOf(
@@ -439,13 +443,19 @@ class MainActivity : ComponentActivity() {
                             val r = backStackEntry.arguments?.getString("role")?.lowercase() ?: "santri"
 
                             ProfileScreen(
-                                userIdAsli = id, namaUser = URLDecoder.decode(n, "UTF-8"),
-                                emailUser = URLDecoder.decode(e, "UTF-8"), role = r,
-                                onLogout = { navController.navigate("login") { popUpTo(0) { inclusive = true } } },
+                                userIdAsli = id,
+                                namaUser = URLDecoder.decode(n, "UTF-8"),
+                                emailUser = URLDecoder.decode(e, "UTF-8"),
+                                role = r,
+                                onLogout = {
+                                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                                },
                                 onNavigateToHome = {
                                     when (r) {
                                         "admin" -> navController.navigate("dashboard_admin/$id/$n/$e/$r") { popUpTo(0) }
                                         "guru" -> navController.navigate("dashboard_guru/$id/$n/$e/$r") { popUpTo(0) }
+                                        // ✅ FIX: Tambahkan penanganan untuk Admin Mitra di Home
+                                        "mitra", "admin_mitra", "adminmitra" -> navController.navigate("dashboard_mitra/$id/$n/$e/$r/0") { popUpTo(0) }
                                         else -> navController.navigate("dashboard_santri/$id/$n/$e/$r") { popUpTo(0) }
                                     }
                                 },
@@ -453,13 +463,13 @@ class MainActivity : ComponentActivity() {
                                     when (r) {
                                         "admin" -> navController.navigate("dashboard_admin/$id/$n/$e/$r") { popUpTo(0) }
                                         "guru" -> navController.navigate("dashboard_guru/$id/$n/$e/$r") { popUpTo(0) }
-                                        "mitra", "admin_mitra" -> navController.navigate("dashboard_mitra/$id/$n/$e/$r/0") { popUpTo(0) }
-
+                                        "mitra", "admin_mitra", "adminmitra" -> navController.navigate("dashboard_mitra/$id/$n/$e/$r/0") { popUpTo(0) }
                                         else -> navController.navigate("dashboard_santri/$id/$n/$e/$r") { popUpTo(0) }
                                     }
                                 }
                             )
                         }
+
 
                         // --- INFO PROGRAM & DETAIL ---
                         composable("info_program") {
@@ -615,7 +625,7 @@ class MainActivity : ComponentActivity() {
                         }
 
 
-                        composable("input_latihan") {
+                        composable("input_latihan_route") {
                             val scope = rememberCoroutineScope()
                             val context = LocalContext.current
 

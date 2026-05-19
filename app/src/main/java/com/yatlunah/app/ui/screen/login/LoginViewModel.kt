@@ -17,6 +17,11 @@ class LoginViewModel : ViewModel() {
     fun login(email: String, pass: String, onSuccess: (String, String, String, String, String?) -> Unit) {
         viewModelScope.launch {
             isLoading = true
+            loginStatus = "" // Bersihkan status lama setiap kali tombol diklik
+
+            // Variabel penampung data agar bisa dieksekusi di luar blok try-catch
+            var navigateData: NavigateData? = null
+
             try {
                 val response = repository.login(LoginRequest(email, pass))
                 if (response.isSuccessful) {
@@ -26,20 +31,36 @@ class LoginViewModel : ViewModel() {
                     val name = body?.nama_lengkap ?: "User"
                     val userEmail = body?.email ?: email
                     val userRole = body?.role ?: "santri"
-                    val idMitra = body?.idMitra // ✅ Ambil idMitra dari AuthResponse
+                    val idMitra = body?.idMitra
 
                     loginStatus = "Selamat datang, $name!"
 
-                    // ✅ Tambahkan parameter kelima (idMitra) ke callback
-                    onSuccess(userId, name, userEmail, userRole, idMitra)
+                    // Simpan data ke penampung
+                    navigateData = NavigateData(userId, name, userEmail, userRole, idMitra)
                 } else {
-                    loginStatus = "Gagal: Email atau Password salah"
+                    loginStatus = "Gagal: Email atau Password salah (Code: ${response.code()})"
                 }
             } catch (e: Exception) {
-                loginStatus = "Koneksi Gagal: ${e.message}"
+                loginStatus = "Koneksi Gagal: ${e.localizedMessage}"
+                Log.e("YATLUNAH_DEBUG", "Error login ke Railway: ${e.message}")
             } finally {
+                // Matikan loading TERLEBIH DAHULU agar UI siap berpindah halaman
                 isLoading = false
+            }
+
+            // Jalankan navigasi di sini (UI thread sudah bebas dari beban loading)
+            navigateData?.let { data ->
+                onSuccess(data.userId, data.name, data.userEmail, data.userRole, data.idMitra)
             }
         }
     }
+
+    // Helper data class lokal untuk merapikan passing data navigasi
+    private data class NavigateData(
+        val userId: String,
+        val name: String,
+        val userEmail: String,
+        val userRole: String,
+        val idMitra: String?
+    )
 }

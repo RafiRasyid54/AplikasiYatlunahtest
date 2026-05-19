@@ -136,20 +136,35 @@ fun LoginScreen(
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(color = brightGreen)
                 } else {
+                    // --- GANTI BAGIAN BUTTON DI LOGINSCREEN.KT DENGAN KODE INI ---
+
                     Button(
                         onClick = {
-                            if (email.isNotEmpty() && password.isNotEmpty()) {
-                                // ✅ PERBAIKAN: Ubah idMitra menjadi mitra
-                                viewModel.login(email, password) { id, nama, emailRes, role, mitra ->
-                                    onLoginSuccess(id, nama, emailRes, role, mitra) // <-- Gunakan 'mitra' di sini
+                            // Trim email untuk menghindari spasi tidak sengaja di awal/akhir
+                            val cleanEmail = email.trim()
+                            val cleanPassword = password
+
+                            if (cleanEmail.isNotEmpty() && cleanPassword.isNotEmpty()) {
+                                // Panggil login, pastikan viewModel benar-benar memicu antrean Retrofit/Coroutine
+                                viewModel.login(cleanEmail, cleanPassword) { id, nama, emailRes, role, mitra ->
+                                    // Callback ini hanya dipicu saat status server HTTP 200 OK
+                                    onLoginSuccess(id, nama, emailRes, role, mitra)
                                 }
+                            } else {
+                                // Proteksi jika user menekan tombol saat field masih kosong
+                                viewModel.loginStatus = "Email dan Password tidak boleh kosong!"
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(55.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = brightGreen),
                         shape = RoundedCornerShape(25.dp)
                     ) {
-                        Text("Login", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(
+                            text = "Login",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                 }
 
